@@ -55,6 +55,28 @@ if unmatched:
 joined = joined.drop(columns=['_merge'])
 
 # ============================================
+# 3b. BC카드 관측기간(2026-01~06)과 겹치는 사업장만 표시하는 코호트 플래그
+# ============================================
+# ABP는 2026년 상반기 6개월 스냅샷 하나뿐 — 그 이전에 이미 폐업한 사업장에
+# 2026년 상반기 소비 패턴을 설명변수로 붙이면 시점이 맞지 않는다(사건이 공변량보다 과거).
+# 행을 삭제하지 않고 플래그만 남겨서, 3단계(Cox/RSF, BC카드 공변량 사용)에서는 True만
+# 쓰고, BC카드 없이 하는 순수 LOCALDATA 장기 트렌드/KM 분석에서는 전체를 그대로 쓴다.
+BC_WINDOW_START = pd.Timestamp('2026-01-01')
+BC_WINDOW_END = pd.Timestamp('2026-06-30')
+
+joined['인허가일자'] = pd.to_datetime(joined['인허가일자'], errors='coerce')
+joined['폐업일자'] = pd.to_datetime(joined['폐업일자'], errors='coerce')
+
+joined['in_bc_window'] = (joined['인허가일자'] <= BC_WINDOW_END) & (
+    joined['폐업일자'].isna() | (joined['폐업일자'] >= BC_WINDOW_START)
+)
+
+n_in = joined['in_bc_window'].sum()
+print(f"\n=== BC카드 관측기간(2026-01~06) 코호트 ===")
+print(f"기간 겹침(in_bc_window=True): {n_in}행 ({n_in / len(joined) * 100:.1f}%) — 3단계 Cox/RSF 대상")
+print(f"기간 이전 폐업(in_bc_window=False): {len(joined) - n_in}행 ({(len(joined) - n_in) / len(joined) * 100:.1f}%) — BC카드 공변량 없이 장기 트렌드용으로만 사용")
+
+# ============================================
 # 4. 저장
 # ============================================
 out_path = DATA_DIR / 'final_joined.csv'

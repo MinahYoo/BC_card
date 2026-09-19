@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import re
 from pathlib import Path
 
@@ -19,13 +20,24 @@ VALID_SIDO = {
 # 전남광주통합특별시 하위 CCG_NM 중 옛 광주광역시 5개 구 — 나머지는 전부 옛 전라남도 시/군
 GWANGJU_GU = {'광산구', '서구', '북구', '동구', '남구'}
 
+# 시도명 신/구 표기 별칭 -> ABP가 쓰는 표기로 통일 (현재 원본엔 신 표기만 있어 실사용 영향 없지만
+# 향후 데이터 갱신 시 구 표기가 섞여 들어와도 미매칭이 안 나도록 방어)
+SIDO_ALIAS = {'강원도': '강원특별자치도', '전라북도': '전북특별자치도'}
+
 # 인천 행정구역 개편(신설구) → ABP(2026 상반기 스냅샷)가 쓰는 개편 이전 구명
-# 출처: 공개된 개편 계획 기준 — 팀에서 한 번 더 교차확인 권장
+# 출처: 인천광역시 공식 발표(incheon.go.kr) 및 관련 법률(《인천광역시 서구 명칭 변경에
+# 관한 법률》,《인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률》, 2026-07-01 시행) 교차확인 완료.
+#   - 검단구, 서해구  <- (구)서구 분리 (경인아라뱃길 기준 북부=검단구, 나머지=서해구 개칭)
+#   - 영종구          <- (구)중구의 섬 지역(영종도)만 분리
+#   - 제물포구        <- (구)중구(내륙) + (구)동구 통합 신설
+# 제물포구는 두 구가 합쳐진 것이라 단일 구명으로 되돌릴 수 없음(미추홀구와는 무관한 별개 구
+# — 원래 코드가 '제물포구'->'미추홀구'로 잘못 매핑하고 있었음, 8,491행 오염 확인 후 수정).
+# 제물포구는 crosswalk에서 변환하지 않고 그대로 두고, join_datasets.py에서 ABP의
+# 중구+동구 데이터를 합산한 합성 공변량으로 별도 매칭한다.
 INCHEON_CROSSWALK = {
     '검단구': '서구',
     '서해구': '서구',
     '영종구': '중구',
-    '제물포구': '미추홀구',
 }
 
 # 일반구를 가진 시 — 주소 3번째 토큰(구)을 CCG_NM에 합쳐줘야 ABP(SIDO_NM,CCG_NM) 포맷과 일치
@@ -64,6 +76,7 @@ def get_area_row(row):
 
 def fix_region(sido, ccg):
     """LOCALDATA(최신 행정구역) → ABP(2026 상반기 스냅샷 기준 구명)로 정합."""
+    sido = SIDO_ALIAS.get(sido, sido)
     if sido == '전남광주통합특별시':
         if ccg in GWANGJU_GU:
             return '광주광역시', ccg
@@ -74,22 +87,6 @@ def fix_region(sido, ccg):
         # ABP는 세종시를 구/읍면동 구분 없이 SIDO_NM 자체를 CCG_NM으로 씀
         return sido, sido
     return sido, ccg
-
-
-def clean_tp_buz_nm(s: str):
-    if pd.isna(s):
-        return s
-    t = re.sub(r"\s+", "", str(s))
-    tl = t.lower()
-    if '편의' in tl:
-        return '편의점'
-    if '슈퍼' in tl or '슈퍼마켓' in tl or 'ssm' in tl:
-        return '슈퍼마켓'
-    if '제과' in tl or '빵' in tl or '도넛' in tl or '아이스크림' in tl:
-        return '제과점'
-    if '대형' in tl or '마트' in tl:
-        return '대형할인점'
-    return t
 
 
 # ============================================
@@ -132,9 +129,21 @@ mapping_rest = {
     '편의점': '편의점',
 }
 
-df_general['bc_업종'] = df_general['업태구분명'].map(mapping_general)
-df_bakery['bc_업종'] = df_bakery['업태구분명'].map(mapping_bakery)
-df_rest['bc_업종'] = df_rest['업태구분명'].map(mapping_rest)
+# 매핑 전 업태구분명 공백만 제거해서 정규화(표기차이로 인한 미매핑 방지).
+# 주의: clean_tp_buz_nm()은 재사용하지 않는다 — 그 함수는 '제과점영업'->'제과점',
+# '아이스크림'->'제과점'처럼 내용을 바꿔버려서, 매핑 딕셔너리 키('제과점영업','아이스크림')와
+# 어긋나 해당 행 전체가 매핑 실패로 사라지는 회귀 버그를 만든다.
+def _strip_ws(s):
+    return re.sub(r'\s+', '', str(s)) if pd.notna(s) else s
+
+
+df_general['업태구분명_norm'] = df_general['업태구분명'].map(_strip_ws)
+df_bakery['업태구분명_norm'] = df_bakery['업태구분명'].map(_strip_ws)
+df_rest['업태구분명_norm'] = df_rest['업태구분명'].map(_strip_ws)
+
+df_general['bc_업종'] = df_general['업태구분명_norm'].map(mapping_general)
+df_bakery['bc_업종'] = df_bakery['업태구분명_norm'].map(mapping_bakery)
+df_rest['bc_업종'] = df_rest['업태구분명_norm'].map(mapping_rest)
 
 # 대규모점포 (대형할인점 + SSM 슈퍼마켓)
 ssm_keywords = r'지에스리테일|GS더프레시|에브리데이리테일|롯데슈퍼|홈플러스\s?익스프레스|이마트에브리데이'
@@ -155,11 +164,6 @@ for _df in (df_general, df_bakery, df_rest, df_large):
     _df['SIDO_NM'] = fixed['SIDO_NM']
     _df['CCG_NM'] = fixed['CCG_NM']
 
-    if '업태구분명' in _df.columns:
-        _df['업태구분명_clean'] = _df['업태구분명'].map(clean_tp_buz_nm)
-    if '사업장명' in _df.columns:
-        _df['사업장명_clean'] = _df['사업장명'].map(clean_tp_buz_nm)
-
 # 주소 파싱 실패율 리포트
 for name, _df in (('일반음식점', df_general), ('제과점', df_bakery), ('휴게음식점', df_rest), ('대규모점포', df_large)):
     fail = _df['SIDO_NM'].isna().sum()
@@ -177,11 +181,13 @@ merge_cols = base_cols + ['bc_업종', 'SIDO_NM', 'CCG_NM']
 
 df_large_mapped = df_large[df_large['bc_업종'].notna()]
 
+# 버그: 여기서 SIDO_NM/CCG_NM을 빼먹으면 대형할인점/슈퍼마켓 1,359행 전부 지역키가 NaN이 되어
+# BC카드와 절대 매칭될 수 없었음(EDA의 미매칭 'NaN/NaN' 원인 — 주소파싱 실패가 아니라 이 누락이었음).
 combined = pd.concat([
     df_general[df_general['bc_업종'].notna()][merge_cols],
     df_bakery[df_bakery['bc_업종'].notna()][merge_cols],
     df_rest[df_rest['bc_업종'].notna()][merge_cols],
-    df_large_mapped[large_cols_present + ['bc_업종']],
+    df_large_mapped[large_cols_present + ['bc_업종', 'SIDO_NM', 'CCG_NM']],
 ], ignore_index=True)
 
 print("\n=== 최종 bc_업종별 건수 ===")
@@ -198,16 +204,53 @@ before = len(combined)
 combined = combined[combined['인허가일자'] >= '1950-01-01']
 print(f"\n인허가일자<1950 필터: {before - len(combined)}행 제거")
 
-# 폐업일자가 인허가일자보다 빠른 논리 오류 건 플래그(제거하지 않고 표시만 — 필요시 별도 처리)
-bad_order = combined['폐업일자'].notna() & (combined['폐업일자'] < combined['인허가일자'])
-print(f"폐업일자 < 인허가일자 (논리 오류 의심): {bad_order.sum()}행")
-
 # 영업상태명 분포 — event_observed 정의 근거로 명시
 print("\n=== 영업상태명 분포 (event_observed 기준: '폐업'만 1, 나머지는 censored) ===")
 print(combined['영업상태명'].value_counts())
 combined['event_observed'] = (combined['영업상태명'] == '폐업').astype(int)
 
+# 날짜 정합성 문제(둘 다 배제 — 신뢰 가능한 종료일이 없으면 duration을 계산할 수 없음):
+#   (a) 폐업일자 < 인허가일자 논리 오류
+#   (b) event_observed==1(폐업)인데 폐업일자가 결측 -> 그동안 fillna(CUTOFF)로 채워져
+#       "아직 생존중"처럼 계산되고 있었음(실제로는 폐업했는데 censored로 취급되는 오류)
+bad_order = combined['폐업일자'].notna() & (combined['폐업일자'] < combined['인허가일자'])
+event_missing_date = (combined['event_observed'] == 1) & combined['폐업일자'].isna()
+bad = bad_order | event_missing_date
+print(f"\n날짜 정합성 문제로 제외: 순서오류 {bad_order.sum()}행 + 폐업인데 폐업일자 결측 {event_missing_date.sum()}행"
+      f" = 총 {bad.sum()}행 ({bad.sum()/len(combined)*100:.4f}%)")
+combined = combined[~bad]
+
 print("\n필터링 후 행 수:", len(combined))
+
+# ============================================
+# 4b. 가게 개별 특성 (기존엔 지역x업종 단위 공변량만 있고 개별 가게 특성이 전혀 없었음
+#     -> Cox/RSF concordance가 낮았던 원인 중 하나. 프랜차이즈 여부 + 입지(중심가/골목) 추가)
+# ============================================
+FRANCHISE_KEYWORDS = [
+    'CU', 'GS25', 'GS리테일', '세븐일레븐', '이마트24', '미니스톱', '씨스페이스',
+    '파리바게뜯', '파리바게트', '뚜레쥬르', '던킨', '배스킨라빈스', '크리스피',
+    '스타벅스', '이디야', '투썸', '메가mgc', '메가MGC', '컴포즈', '빽다방', '커피빈', '할리스',
+    '맘스터치', '롯데리아', '맥도날드', '버거킹', 'KFC', '써브웨이',
+    '김가네', '바르다김선생', '홍콩반점', '교촌', 'BBQ', '굽네',
+]
+_franchise_pat = '|'.join(pd.Series(FRANCHISE_KEYWORDS).str.replace(r'([\[\](){}.*+?^$|\\])', r'\\\1', regex=True))
+combined['사업장명'] = combined['사업장명'].fillna('')
+combined['is_franchise'] = combined['사업장명'].str.contains(_franchise_pat, case=False, regex=True, na=False).astype(int)
+print(f"\n프랜차이즈 키워드 매칭: {combined['is_franchise'].sum()}행 ({combined['is_franchise'].mean()*100:.2f}%)")
+
+# 입지: 같은 (SIDO_NM,CCG_NM) 안에서 좌표 중심점(centroid)까지의 거리(m) — 중심가/골목 상권 구분 proxy
+coords_valid = combined['좌표정보(X)'].notna() & combined['좌표정보(Y)'].notna()
+centroid = (
+    combined.loc[coords_valid]
+    .groupby(['SIDO_NM', 'CCG_NM'])[['좌표정보(X)', '좌표정보(Y)']]
+    .transform('mean')
+)
+dist = np.sqrt((combined.loc[coords_valid, '좌표정보(X)'] - centroid['좌표정보(X)']) ** 2 +
+               (combined.loc[coords_valid, '좌표정보(Y)'] - centroid['좌표정보(Y)']) ** 2)
+combined['dist_to_region_centroid_m'] = np.nan
+combined.loc[coords_valid, 'dist_to_region_centroid_m'] = dist
+print(f"입지(중심점 거리) 계산: {coords_valid.sum()}행 ({coords_valid.mean()*100:.1f}%), "
+      f"결측(좌표없음)은 NaN으로 남김")
 
 # ============================================
 # 5. 저장

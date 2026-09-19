@@ -31,8 +31,7 @@ if not jemulpo_src.empty:
 # ============================================
 # GENDER_CD='x'/AGE_CD='x'는 소규모셀 마스킹으로 성별·연령 breakdown이 비공개 처리된 행
 # (금액 자체는 존재) — 합계에는 포함하되, 성별/연령 구성비 계산에서는 제외한다.
-# 주의: 성별과 연령은 독립적으로 마스킹되므로 각자 따로 필터링한다(둘 다 공개된 행만 쓰면,
-# 예: 성별은 공개(x아님)인데 연령만 마스킹된 행이 성별 구성비 계산에서도 불필요하게 빠짐).
+# 참고: 성별x와 연령x는 항상 같은 행에서 함께 나타난다(13,161행 전부). 그래도 각자 컬럼 기준으로 필터링하는 것은 동일하다.
 totals = bc.groupby(JOIN_KEY, as_index=False)[['amt', 'cnt']].sum()
 totals = totals.rename(columns={'amt': 'bc_amt_total', 'cnt': 'bc_cnt_total'})
 
@@ -83,7 +82,10 @@ print("BC카드 월별 변화량(trend_slope/cv/growth_ratio) 추가 완료")
 # ============================================
 # 3. LOCALDATA(row 단위 유지) <- BC카드 공변량 LEFT JOIN
 # ============================================
-joined = localdata.merge(bc_covariates, on=JOIN_KEY, how='left', indicator=True)
+assert not bc_covariates.duplicated(JOIN_KEY).any(), "BC카드 공변량 표에 중복 키가 있음 -> 조인 시 행이 증식됨"
+n_before_join = len(localdata)
+joined = localdata.merge(bc_covariates, on=JOIN_KEY, how='left', indicator=True, validate='m:1')
+assert len(joined) == n_before_join, "조인 후 행 수가 달라짐"
 
 matched = (joined['_merge'] == 'both').sum()
 unmatched = (joined['_merge'] == 'left_only').sum()

@@ -54,24 +54,40 @@ print(f"\n업종간 log-rank test: chi2={result.test_statistic:.1f}, p={result.p
 # ============================================
 # 지역(시군구) x 업종별 KM — 위험/안정 패턴 1차 발견
 # ============================================
-# 탐색용 기술통계(전체 이력 기준)이며 모델 입력이 아니다. 표본 30 미만 그룹은 KM이 불안정해 제외.
-# 중위생존시간은 곡선이 0.5 아래로 안 내려가면 inf라서, 5년 생존율을 비교 기준으로 함께 낸다.
+# 탐색용 기술통계(전체 이력 기준)이며 모델 입력이 아니다. 작은 지역의 우연한 극단값을 걸러내려고
+# 사업장 30개 이상 AND 폐업(사건) 30건 이상인 그룹만 남기고, 5년 생존율의 95% 신뢰구간(Greenwood)을 함께 낸다.
+# 중위생존시간은 곡선이 0.5 아래로 안 내려가면 inf라서, 5년 생존율을 비교 기준으로 쓴다.
+MIN_N, MIN_EVENT = 30, 30
 rows = []
 for (sido, ccg, biz), sub in sub_all.groupby(["SIDO_NM", "CCG_NM", "bc_업종"]):
-    if len(sub) < 30:
+    n_event = int(sub["event_observed"].sum())
+    if len(sub) < MIN_N or n_event < MIN_EVENT:
         continue
     k = KaplanMeierFitter().fit(sub["duration_years"], sub["event_observed"])
-    rows.append({"SIDO_NM": sido, "CCG_NM": ccg, "bc_업종": biz, "n": len(sub),
-                 "n_event": int(sub["event_observed"].sum()),
+    ci = k.confidence_interval_.loc[:5].iloc[-1]
+    rows.append({"SIDO_NM": sido, "CCG_NM": ccg, "bc_업종": biz, "n": len(sub), "n_event": n_event,
                  "median_surv_years": k.median_survival_time_,
-                 "surv_5y": k.survival_function_at_times(5).values[0]})
+                 "surv_5y": k.survival_function_at_times(5).values[0], "surv_5y_lo95": ci.iloc[0], "surv_5y_hi95": ci.iloc[1]})
 region_km = pd.DataFrame(rows)
 region_km.to_csv(OUT_DIR / "4c_지역x업종_KM.csv", index=False, encoding="utf-8-sig")
-print(f"\n지역x업종 KM: {len(region_km)}개 그룹(표본>=30) 저장 -> output/4c_지역x업종_KM.csv")
+print(f"\n지역x업종 KM: {len(region_km)}개 그룹(사업장>={MIN_N}, 폐업>={MIN_EVENT}) 저장 -> output/4c_지역x업종_KM.csv")
 big = region_km[region_km["n"] >= 100].sort_values("surv_5y")
-print("\n5년 생존율 최저 10개 (표본>=100):")
-print(big.head(10)[["SIDO_NM", "CCG_NM", "bc_업종", "n", "surv_5y"]].to_string(index=False))
-print("\n5년 생존율 최고 10개 (표본>=100):")
-print(big.tail(10)[["SIDO_NM", "CCG_NM", "bc_업종", "n", "surv_5y"]].to_string(index=False))
-spread = big.groupby("bc_업종")["surv_5y"].agg(["min", "median", "max"]).round(3)
-print("\n업종별 지역간 5년 생존율 범위:\n", spread)
+print("\n5년 생존율 최저 10개 (사업장>=100, 95% CI 포함):")
+print(big.head(10)[["SIDO_NM", "CCG_NM", "bc_업종", "n", "n_event", "surv_5y", "surv_5y_lo95", "surv_5y_hi95"]].round(3).to_string(index=False))
+print("\n5년 생존율 최고 10개:")
+print(big.tail(10)[["SIDO_NM", "CCG_NM", "bc_업종", "n", "n_event", "surv_5y", "surv_5y_lo95", "surv_5y_hi95"]].round(3).to_string(index=False))
+print("\n업종별 지역간 5년 생존율 범위:\n", big.groupby("bc_업종")["surv_5y"].agg(["min", "median", "max"]).round(3))
+
+# ============================================
+# 개업 코호트별 5년 생존율 — 전체 이력을 한 곡선에 합치면 시대(경기·코로나·임대료 등) 차이가 섞인다
+# ============================================
+# 5년을 관측하려면 개업 후 5년이 지났어야 하므로 2021년 이전 개업만 본다. 이 KM은 '역사적 pooled 생존'이지 2026년 신규 사업장의 예상 생존이 아니다.
+sub_all = sub_all.assign(open_year=sub_all["인허가일자"].dt.year)
+sub_all["cohort"] = pd.cut(sub_all["open_year"], [1949, 1999, 2004, 2009, 2014, 2021], labels=["~1999", "2000-04", "2005-09", "2010-14", "2015-21"])
+crow = []
+for (biz, coh), sub in sub_all.groupby(["bc_업종", "cohort"], observed=True):
+    k = KaplanMeierFitter().fit(sub["duration_years"], sub["event_observed"])
+    crow.append({"bc_업종": biz, "cohort": coh, "n": len(sub), "surv_5y": k.survival_function_at_times(5).values[0]})
+cohort_km = pd.DataFrame(crow).pivot(index="bc_업종", columns="cohort", values="surv_5y").round(3)
+cohort_km.to_csv(OUT_DIR / "4d_개업코호트별_5년생존율.csv", encoding="utf-8-sig")
+print("\n개업 코호트별 5년 생존율:\n", cohort_km.to_string())

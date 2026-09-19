@@ -79,6 +79,8 @@ for biz in MAIN_BIZ:
     if trees[biz] is None or n == 0:
         continue
     pts = local.loc[mask, ["좌표정보(X)", "좌표정보(Y)"]].to_numpy()
+    # 주의: 이 사업장이 소진공 상가정보에도 있으면 자기 자신이 1개로 세어질 수 있다(두 출처를 1:1로 매칭할 키가 없어 제외하지 못함).
+    # 그래서 정확한 명칭은 '반경 500m 동일업종 소진공 점포 수(자기 점포 포함 가능)'이며, 경쟁자 수로 해석할 때는 이 점을 감안한다.
     counts = trees[biz].query_ball_point(pts, r=RADIUS_M, return_length=True)
     result.loc[mask] = counts
     print(f"  {biz}: {n}행 계산 완료 (평균 {counts.mean():.1f}개 경쟁점포/{RADIUS_M}m)")

@@ -125,11 +125,37 @@ _SVG = re.compile(r'<svg viewBox="0 0 (\d+) (\d+)" role="img" class="chart">(.*?
 KINDS = [("점포 단위 판별력 하락(ΔC-index)", "c"), ("지역 간 순위 하락(ΔSpearman, 95% CI)", "s"), ("같은 시군구 안 순위 하락(ΔSpearman, 95% CI)", "w"),
          ("폐업률 차이를 설명하는 정도(조정 R²)", ""), ("점포당 소비 구간별 폐업률", ""), ("객단가 구간별 폐업률", ""), ("모형 단계별 Moran’s I", "")]
 _SW = lambda c, t: f'<span class="lgi"><span class="sw {c}"></span>{t}</span>'
-LEGEND = {
-    "c": _SW("pos", "★ 뚜렷한 기여(ΔC-index 0.003 초과)") + _SW("muted", "기여 미약"),
-    "s": _SW("pos", "★ 유의: 95% 신뢰구간이 0을 제외") + _SW("muted", "구간이 0을 포함(뚜렷한 차이 없음)"),
-    "w": _SW("pos", "★ 유의: 95% 신뢰구간이 0을 제외") + _SW("muted", "구간이 0을 포함") + _SW("neg", "▼ 구간이 0 미만: 빼는 편이 오히려 나음"),
-}
+COMMON_LEGEND = ('<div class="lgbox"><p class="lgd">' + _SW("pos", "★ 유의(청록) — 그 요인 묶음을 빼면 눈에 띄게 나빠져요") + _SW("muted", "회색 — 불확실") + _SW("neg", "▼ 주황 — 빼는 편이 오히려 나음") + '</p>'
+                 '<p class="how" style="margin:0"><b>유의의 기준</b> 순위 차트(ΔSpearman)는 95% 신뢰구간이 0을 제외할 때예요. ΔC-index 차트는 신뢰구간이 없어서, 통계 검정이 아니라 리포트의 표시 기준인 “0.003 초과”로 칠했어요. '
+                 '세 차트는 각각 값이 큰 순서(위→아래)로 정렬해서 요인 순서가 서로 달라요.</p></div>')
+_CHARTS = []          # 변환 중 읽은 차트 행(라벨·값 문자열·색 클래스). 요약 표 등이 같은 값을 그대로 다시 쓴다
+
+
+def _num(v):
+    return float(v.replace("%", "").replace("+", ""))
+
+
+def _nice_ticks(zero, k, signed, pctsign):
+    """축 눈금: 값 0의 위치(zero, %)와 단위당 길이(k, %/단위)로 계산. 눈금 값은 축 표기일 뿐 데이터가 아니다."""
+    lo, hi = (0 - zero) / k, (100 - zero) / k
+    best = None
+    for step in (0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10):
+        n0, n1 = int(-(-lo // step)), int(hi // step)
+        vals = [i * step for i in range(n0, n1 + 1)]
+        if 4 <= len(vals) <= 7:
+            best = (step, vals)
+            break
+        if 3 <= len(vals) <= 7 and best is None:
+            best = (step, vals)
+    assert best, "눈금을 못 만듦"
+    step, vals = best
+    dec = max(0, -int(f"{step:e}".split("e")[1]))
+    out = []
+    for v in vals:
+        pp = zero + v * k
+        t = "0" if abs(v) < step / 1000 else (("+" if signed and v > 0 else "") + f"{v:.{dec}f}" + ("%" if pctsign else ""))
+        out.append((pp, t))
+    return out
 
 
 def _hbars(m, idx=0):
@@ -143,8 +169,22 @@ def _hbars(m, idx=0):
     zero = pct(float(ax.group(1))) if ax else 0.0
     title, kind = KINDS[idx]
     star = {"pos": "★ ", "neg": "▼ "} if kind else {}
-    aria = title + ": " + ", ".join(f"{re.sub('<[^>]+>', '', r[1])} {r[6]}" for r in rows)
-    out = [f'<p class="lgd">{LEGEND[kind]}</p>' if kind else "", f'<div class="hb" role="group" aria-label="{aria}">']
+    labs = [re.sub("<[^>]+>", "", r[1]) for r in rows]
+    _CHARTS.append({"kind": kind, "title": title, "rows": [(labs[i], r[6], r[4]) for i, r in enumerate(rows)]})
+    if kind:      # 한 줄 요약(스크린리더): 유의한 요인과 빼는 편이 나은 요인만 말하고, 전체 값은 목록에서 읽게 한다
+        hi_ = [labs[i] for i, r in enumerate(rows) if r[4] == "pos"]
+        lo_ = [labs[i] for i, r in enumerate(rows) if r[4] == "neg"]
+        aria = f"{title}: 유의한 요인(★) {', '.join(hi_) or '없음'}" + (f"; 빼는 편이 오히려 나은 요인(▼) {', '.join(lo_)}" if lo_ else "") + "; 나머지는 불확실(회색)."
+    else:
+        aria = f"{title}: " + ", ".join(f"{labs[i]} {r[6]}" for i, r in enumerate(rows))
+    vals = [_num(r[6]) for r in rows]
+    big = max(abs(v) for v in vals)
+    ks = [float(r[3]) / (x1 - x0) * 100 / abs(v) for r, v in zip(rows, vals) if abs(v) >= 0.15 * big]
+    k = sorted(ks)[len(ks) // 2]
+    assert (max(ks) - min(ks)) / k < 0.08, f"눈금 척도가 일정하지 않음: {title}"
+    axis = "".join(f'<i class="tk" style="left:{pp:.2f}%"></i><span class="lb{" l" if pp < 4 else (" r" if pp > 96 else "")}" style="left:{pp:.2f}%">{t}</span>'
+                   for pp, t in _nice_ticks(zero, k, signed=rows[0][6][0] in "+-", pctsign=rows[0][6].endswith("%")))
+    out = [f'<div class="hb" role="group" aria-label="{aria}">']
     for lx, lab, rx, rw, cls, whisk, val in rows:
         l, w = pct(float(rx)), float(rw) / (x1 - x0) * 100
         trk = f'<i class="zero" style="left:{zero:.2f}%"></i><i class="hbar {cls}" style="left:{l:.2f}%;width:{w:.2f}%"></i>'
@@ -153,11 +193,13 @@ def _hbars(m, idx=0):
             lo, hi = pct(xs[0][0]), pct(xs[0][1])
             trk += f'<i class="wk" style="left:{lo:.2f}%;width:{hi - lo:.2f}%"></i><i class="wkc" style="left:{lo:.2f}%"></i><i class="wkc" style="left:{hi:.2f}%"></i>'
         out.append(f'<div class="hbrow" data-cls="{cls}"><div class="nm">{star.get(cls, "")}{lab}</div><div class="trk">{trk}</div><div class="val">{val}</div></div>')
+    out.append(f'<div class="hbrow hbaxis" aria-hidden="true"><div></div><div class="ax">{axis}</div><div></div></div>')
     out.append("</div>")
     return "".join(out)
 
 
 def bars_to_html(h):
+    _CHARTS.clear()
     it = iter(range(len(KINDS)))
     h, n = _SVG.subn(lambda m: _hbars(m, next(it)), h)
     assert n == len(KINDS), f"막대 차트 수가 달라짐: {n}"
@@ -238,9 +280,9 @@ def step2(h):
     # 차트·표 제목의 용어 풀이 + “읽는 법”
     dc = tip("ΔC-index", "Δ(델타)는 ‘변화량’이에요. 어떤 요인 묶음을 뺐을 때 점포 단위 판별력(C-index)이 얼마나 떨어지는지예요. 클수록 그 묶음이 중요해요.")
     ds = tip("ΔSpearman", "요인 묶음을 뺐을 때 순위 예측(Spearman 순위상관)이 얼마나 나빠지는지예요. 클수록 그 묶음이 중요해요.")
-    h = _rep(h, "점포 단위 판별력 하락 (ΔC-index)</h3>", f"점포 단위 판별력 하락 ({dc})</h3>" + how("막대가 길수록, 그 요인 묶음을 빼면 점포 단위 예측(폐업할 점포 가려내기)이 많이 나빠져요."))
-    h = _rep(h, "지역 간 순위 하락 (ΔSpearman, 95% CI)</h3>", f"지역 간 순위 하락 ({ds}, 95% CI)</h3>" + how("막대가 길수록, 그 요인 묶음을 빼면 ‘지역끼리의 위험 순위’가 많이 틀어져요. 막대 위 가로선은 95% 신뢰구간이에요."))
-    h = _rep(h, "같은 시군구 안 순위 하락 (ΔSpearman, 95% CI)</h3>", "같은 시군구 안 순위 하락 (ΔSpearman, 95% CI)</h3>" + how("같은 시군구 안에서 지역·업종 조합의 순위를 가르는 데 그 요인 묶음이 얼마나 필요한지예요. 왼쪽(음수)이면 빼는 편이 오히려 나은 요인이에요."))
+    h = _rep(h, "점포 단위 판별력 하락 (ΔC-index)</h3>", f"점포 단위 판별력 하락 ({dc})</h3>" + how("막대가 길수록, 그 요인 묶음을 빼면 점포 단위 예측(폐업할 점포 가려내기)이 많이 나빠져요. 값이 큰 순서로 위에서 아래로 정렬했어요."))
+    h = _rep(h, "지역 간 순위 하락 (ΔSpearman, 95% CI)</h3>", f"지역 간 순위 하락 ({ds}, 95% CI)</h3>" + how("막대가 길수록, 그 요인 묶음을 빼면 ‘지역끼리의 위험 순위’가 많이 틀어져요. 막대 위 가로선은 95% 신뢰구간이에요. 값이 큰 순서로 정렬했어요."))
+    h = _rep(h, "같은 시군구 안 순위 하락 (ΔSpearman, 95% CI)</h3>", "같은 시군구 안 순위 하락 (ΔSpearman, 95% CI)</h3>" + how("같은 시군구 안에서 지역·업종 조합의 순위를 가르는 데 그 요인 묶음이 얼마나 필요한지예요. 왼쪽(음수)이면 빼는 편이 오히려 나은 요인이에요. 값이 큰 순서로 정렬했어요."))
     for aria_start, title, hw in [("폐업률 차이를 설명하는 정도", "폐업률 차이를 설명하는 정도 (조정 R²)", how("막대가 길수록 그 정보(업종 또는 시군구)만으로 지역·업종 조합 간 폐업률 차이를 잘 설명해요. 이론상 상한은 약 0.72예요.")),
                                   ("모형 단계별 Moran’s I", "이웃끼리 닮은 패턴이 남은 정도 (Moran’s I)", how("막대가 짧을수록(0에 가까울수록) 모형이 놓친 ‘이웃끼리 닮은 패턴’이 적어요."))]:
         h = _rep(h, f'<div class="card"><div class="hb" role="group" aria-label="{aria_start}', f'<div class="card"><h3 style="margin-top:0">{title}</h3>{hw}<div class="hb" role="group" aria-label="{aria_start}')
@@ -270,6 +312,7 @@ def step2(h):
     k4, k5, k6, kl = _find(secs, "4장."), _find(secs, "5장."), _find(secs, "6장."), _find(secs, "데이터와 한계")
     find = secs[k_find].replace("<h2>한눈에 보는 결론</h2>", "<h2>핵심 결론 (A~E)</h2>")
     s1 = _fold(secs[k1], "점포 하나를 가려낼 땐 영업연수·점포 규모·운영 특성·프랜차이즈가, 지역끼리 비교할 땐 지역 폐업 흐름과 영업연수가 중요했어요. BC카드 고객 연령대는 ‘어떤 유형의 지역인가’를 알려 주는 신호일 뿐 같은 지역 안의 원인은 아니었고, 같은 시군구 안에서 조합을 가르는 건 업종뿐이었어요.")
+    s1 = s1.replace('<div class="cols">', COMMON_LEGEND + '<div class="cols">', 1)
     s2 = _fold(secs[k2], "위험은 업종보다 지역에서 더 크게 갈려요. 시군구만으로 설명한 정도가 업종만의 약 4배예요.")
     # 3장: 소비 3분위 차트는 그대로 두고, 통계 표만 접는다
     s3 = secs[k3]

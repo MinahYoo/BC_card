@@ -127,14 +127,40 @@ xy = a.loc[ok, ["좌표정보(X)", "좌표정보(Y)"]].to_numpy(float)
 cntn = cKDTree(xy).query_ball_point(xy, r=500, return_length=True, workers=-1) - 1
 a.loc[ok, "nbr500"] = np.log1p(cntn)
 reg = reg.merge(a.groupby(REGION_KEY)["nbr500"].median().rename("log_dens500").reset_index(), on=REGION_KEY, how="left")
+cent = a[ok].groupby(REGION_KEY)[["좌표정보(X)", "좌표정보(Y)"]].median().reset_index()
 del allst, a
 
 n0 = len(full)
 full = full.merge(gf.drop(columns="n_jan1"), on=JOIN_KEY, how="left", validate="m:1")
 full = full.merge(reg[REGION_KEY + ["log_n_reg", "log_dens500"]], on=REGION_KEY, how="left", validate="m:1")
 assert len(full) == n0
+
+# --- 공간 지연: 1/1 이전 1년 폐업 이력만 사용(사전 결정). 이웃 = 시군구 중심점 k=5 최근접 ---
+yr = pd.Timedelta(days=365)
+n_ago_r = df[alive(df, LM - yr)].groupby(REGION_KEY).size().rename("n_ago")
+cl_r = df[(df["폐업일자"] > LM - yr) & (df["폐업일자"] <= LM)].groupby(REGION_KEY).size().rename("cl")
+rh = pd.concat([n_ago_r, cl_r], axis=1).fillna(0)
+rh["reg_hist"] = rh["cl"] / rh["n_ago"].clip(lower=1)
+rh = rh.reset_index().merge(cent, on=REGION_KEY, how="inner")
+pts = rh[["좌표정보(X)", "좌표정보(Y)"]].to_numpy(float)
+_, nn = cKDTree(pts).query(pts, k=6)
+pairs = pd.DataFrame({"i": np.repeat(np.arange(len(rh)), 5), "j": nn[:, 1:].ravel()})
+pairs = pairs.join(rh[REGION_KEY].reset_index(drop=True), on="i").join(
+    rh[REGION_KEY + ["n_ago", "reg_hist"]].reset_index(drop=True).rename(columns={"SIDO_NM": "nS", "CCG_NM": "nC", "n_ago": "nn_ago", "reg_hist": "nb_h"}), on="j")
+nb_reg = pairs.groupby(REGION_KEY).apply(lambda d: np.average(d["nb_h"], weights=d["nn_ago"].clip(lower=1)), include_groups=False).rename("nb_reg_hist").reset_index()
+gt = full.drop_duplicates(JOIN_KEY)[JOIN_KEY + ["g_closure_rate_1y"]].merge(gf[JOIN_KEY + ["n_jan1"]], on=JOIN_KEY, how="left")
+gt = gt.rename(columns={"SIDO_NM": "nS", "CCG_NM": "nC", "g_closure_rate_1y": "nb_g", "n_jan1": "nb_w"})
+pg = pairs.merge(gt, on=["nS", "nC"], how="inner")                    # (시군구, 이웃 시군구의 업종별 그룹): 업종이 곧 대상 그룹의 업종
+nb_grp = pg.groupby(JOIN_KEY).apply(lambda d: np.average(d["nb_g"], weights=d["nb_w"].clip(lower=1)), include_groups=False).rename("nb_grp_hist").reset_index()
+n1_ = len(full)
+full = (full.merge(rh[REGION_KEY + ["reg_hist"]], on=REGION_KEY, how="left", validate="m:1")
+            .merge(nb_reg, on=REGION_KEY, how="left", validate="m:1")
+            .merge(nb_grp, on=JOIN_KEY, how="left", validate="m:1"))
+assert len(full) == n1_
+full["nb_grp_hist"] = full["nb_grp_hist"].fillna(full["nb_reg_hist"])       # 이웃에 같은 업종이 없으면 이웃 시군구 전체 이력
+LAG3 = ["reg_hist", "nb_reg_hist", "nb_grp_hist"]
 M6_VARS = ["age_hhi", "age_mean_dev", "fem_dev", "reg_spend_ps", "grp_share_reg", "bc_growth", "bc_cv"]
-NEW = ["log_n_grp", "spend_jan", "spend_6f", "spend_6d", "unit_z_jan", "unit_z_6", "log_n_reg", "log_dens500", *M6_VARS]
+NEW = LAG3 + ["log_n_grp", "spend_jan", "spend_6f", "spend_6d", "unit_z_jan", "unit_z_6", "log_n_reg", "log_dens500", *M6_VARS]
 for c in NEW:
     na = int(full[c].isna().sum())
     if na:
@@ -159,6 +185,7 @@ M3n = [c for c in M3 if c not in age_cols]
 M4 = M3 + ["log_n_grp"]
 M2c, M2hc = model_cols(ns, ns["BASE"]), model_cols(ns, ns["REF"])
 SPEC = {   # 이름: (열, 층)
+    "M2hR": (M2hc + ["reg_hist"], None), "M2hL": (M2hc + LAG3, None), "M3L": (M3 + LAG3, None),
     "M2": (M2c, None), "M2h": (M2hc, None), "M6": (M4 + M6_VARS, None),
     "M7": (M4 + CTX, None),
     "M3": (M3, None), "M3-연령": (M3n, None), "M4": (M4, None),
@@ -168,13 +195,14 @@ SPEC = {   # 이름: (열, 층)
     "M5D": (M4 + ["spend_6d", "unit_z_6"], None),
 }
 ST = ["region_id"]
-SPEC_S = {"M7s": (M4 + CTX, ST), "M6s": (M4 + [v for v in M6_VARS if v not in ("reg_spend_ps", "age_mean_dev")], ST), "M3s": (M3, ST), "M3s-연령": (M3n, ST), "M4s": (M4, ST),
+SPEC_S = {"M3Ls": (M3 + ["nb_grp_hist"], ST), "M7s": (M4 + CTX, ST), "M6s": (M4 + [v for v in M6_VARS if v not in ("reg_spend_ps", "age_mean_dev")], ST), "M3s": (M3, ST), "M3s-연령": (M3n, ST), "M4s": (M4, ST),
           "M5Js": (M4 + ["spend_jan", "unit_z_jan"], ST), "M5Ds": (M4 + ["spend_6d", "unit_z_6"], ST)}
-PAIRS = [("M7", "M4", "그룹 구성(프랜차이즈·영업연수·다중이용 그룹 평균)"), ("M3", "M2h", "BC카드 전체(성별·연령)"), ("M2h", "M2", "지역 최근 폐업률"), ("M6", "M4", "추가 BC 특성 7개(M6)"),
+PAIRS = [("M2hR", "M2h", "자기 시군구 전체 폐업 이력"), ("M2hL", "M2hR", "이웃 시군구 폐업 이력(공간 지연)"), ("M2hL", "M2h", "지역·이웃 이력 합계(M2h 기준)"), ("M3L", "M3", "지역·이웃 이력 추가(M3 기준)"),
+         ("M7", "M4", "그룹 구성(프랜차이즈·영업연수·다중이용 그룹 평균)"), ("M3", "M2h", "BC카드 전체(성별·연령)"), ("M2h", "M2", "지역 최근 폐업률"), ("M6", "M4", "추가 BC 특성 7개(M6)"),
          ("M3", "M3-연령", "연령 블록"), ("M4", "M3", "경쟁밀도(그룹)"), ("M4v", "M4", "시군구 규모·밀집도"),
          ("M5J", "M4", "소비(1월)"), ("M5S", "M4", "소비(6개월, 1/1 분모)"), ("M5D", "M4", "소비(6개월, 월별 분모)"),
          ("M5J", "M5D", "1월 vs 6개월(월별 분모) 차이")]
-PAIRS_S = [("M7s", "M4s", "그룹 구성(프랜차이즈·영업연수·다중이용 그룹 평균)"), ("M6s", "M4s", "추가 BC 특성 7개(M6)"), ("M3s", "M3s-연령", "연령 블록"), ("M4s", "M3s", "경쟁밀도(그룹)"),
+PAIRS_S = [("M3Ls", "M3s", "이웃 같은 업종 폐업 이력(층화)"), ("M7s", "M4s", "그룹 구성(프랜차이즈·영업연수·다중이용 그룹 평균)"), ("M6s", "M4s", "추가 BC 특성 7개(M6)"), ("M3s", "M3s-연령", "연령 블록"), ("M4s", "M3s", "경쟁밀도(그룹)"),
            ("M5Js", "M4s", "소비(1월)"), ("M5Ds", "M4s", "소비(6개월, 월별 분모)")]
 
 
@@ -286,7 +314,7 @@ def cross_val(fold_row, specs, tag):
 # ============================================
 print("\n=== 전체 코호트 적합: 새 변수 계수 ===", flush=True)
 rows = []
-for n in ("M4", "M4v", "M5J", "M5D", "M6", "M7"):
+for n in ("M4", "M4v", "M5J", "M5D", "M6", "M7", "M2hL", "M3L"):
     cols, _ = SPEC[n]
     p = fit_params("full|" + n, cols, full)
     for c in cols:

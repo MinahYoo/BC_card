@@ -57,6 +57,9 @@ for k, name in MODEL.items():
 oof = np.load("output/_cache/oof_group.npz")
 for k in MODEL:
     lps[f"{k} (OOF)"] = oof[k]
+for k in ("M2hR", "M2hL", "M3L"):        # 공간 지연 변수를 넣은 모형(bc_scale_check.py의 미학습 예측)
+    if k in oof.files:
+        lps[f"{k} (OOF)"] = oof[k]
 ps = {name: calibrated_p(lp, target) for name, lp in lps.items()}
 for name, p in ps.items():
     print(f"교정 {name}: 평균 기대 {p.mean() * 100:.3f}% vs 관측 {ev_all.mean() * 100:.3f}%")

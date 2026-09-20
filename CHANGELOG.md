@@ -522,6 +522,81 @@ v1의 "BC카드 변수는 모두 0.003 이하"는 구조를 깨뜨린 permutatio
 
 ---
 
+## ⑮ `cox_rsf.py`에 단순 코호트 설계 반영 (팀원 브랜치 병합 후 로컬 수정)
+
+- **바꾼 것(코호트 생성부 중심)**: `--design cohort|landmark`(기본 **cohort**)를 추가했다. cohort는 2026-01-01에 영업 중인 사업장 전체를 `--end`(기본 6/30,
+  민감도 9/16)까지 추적한다(관측창 180일). 팀원의 정의(`인허가일자 ≤ 시작일`, `폐업일자` 결측 또는 `> 시작일`, 사건이면 폐업까지 일수, 아니면 관측창)를 그대로
+  재사용하고 `landmark` 원안은 `--design landmark`로 그대로 남겼다. **산출 파일 이름에 설계명이 붙어**(`..._cohort`, `..._landmark`) 팀원의 기존 결과(`output/5_*.csv`)를
+  덮어쓰지 않는다.
+- **cohort에서 달라지는 것**: 시간 분할이 없어 세트가 `train`/`test_group` 둘뿐이고(`valid_time`·`test_both` 없음, 평가 세트는 `TEST_KEY`), BC는 룩백 없이
+  2026-01~06 전체 집계이며, 트렌드·CV 변수는 성능 기여가 0(⑪)이라 뺀다. 그룹 분할, 시군구 cluster bootstrap, 블록 joint 검정, RSF 블록 permutation, calibration은
+  그대로다(단 calibration 등의 horizon은 `H_YEARS`=180일).
+- **모형 구성(양 설계 공통)**: M0 업종 / M1 +영업연수 / M2 +프랜차이즈·입지 / **M2x +사업장 확장변수**(is_multiuse, size_z, size_missing, coord_missing, phone_recorded) /
+  **M2h +지역 최근폐업률**(`g_closure_rate_1y`, 시작 시점 이전 1년만 사용) / M3 +BC카드. **BC카드의 순수 추가 기여는 M3 − M2h**로 보고(사업장 변수와 지역 이력을 모두 통제),
+  M3 − M2는 참고로 함께 낸다. LR 검정도 M2h 대비. 경쟁밀도 민감도 S1·S2는 `5b_spatial_competitor.csv`가 있을 때만 실행한다.
+- **표본 정의 변경**: 좌표가 없는 사업장(약 3%)을 더 이상 제거하지 않는다. 거리·경쟁밀도는 중앙값으로 채우고 `coord_missing`을 넣는다(폐업 양상이 달라 통째 제외하면 선택편향).
+  결측/무효 시설총규모는 업종 평균(0)으로 두고 `size_missing`을 함께 넣는다. 업종 하나만 돌려 상수가 되는 열(편의점의 `size_z`)은 자동으로 제외한다.
+- **코호트 생성 검증(실행 결과)**: 1/1에 영업 중인 7개 업종 사업장 **635,567개**(앞서 EDA의 1/1 창과 일치), 180일 폐업 **25,330건(3.99%)**(팀원 landmark 한 창의 약 1.1만 건의 2배).
+  그룹 1,782개·시군구 255개, 그룹 분할 train 524,178행(폐업 20,981) / test_group 111,358행(폐업 4,348). `g_closure_rate_1y`는 0~2.7, 모형 변수에 결측 없음.
+- **스모크 테스트**: 편의점 한 업종을 작은 옵션(`--n-boot 20 --n-diff-boot 20 --n-repeat 2 --skip-rsf`)으로 cohort·landmark 두 설계 모두 끝까지 통과(landmark 편의점
+  위험집단 469/514건은 EDA 값과 일치). **표본이 작고 부트스트랩이 20회뿐이라 이 실행의 C-index·차이 값은 해석 대상이 아니다.** 전체 7개 업종 본 실행은 아직 안 했다.
+- **아직 못 한 것 / 환경 주의**:
+  - `scikit-survival`은 이 컴퓨터의 Python 3.13용 설치 조합이 없어 **RSF는 로컬에서 실행·검증하지 못했다**(`--skip-rsf`로 Cox만 검증). RSF 블록 정의를 바꿨으므로(사업장 확장변수·
+    지역 최근폐업률 블록 추가) 팀원 환경(Python 3.9, `requirements.txt`)에서 한 번 돌려 확인해야 한다. `sksurv` import는 RSF를 돌릴 때만 하도록 늦췄다.
+  - 가상환경 `.venv`(시스템 패키지 공유 + `lifelines` 설치)를 프로젝트 안에 만들어 썼고 `.gitignore`에 넣었다. 전역 환경은 건드리지 않았다.
+  - **윈도우 사용자 이름이 한글이면 joblib 병렬이 실패**한다(임시 폴더 경로를 ASCII로 인코딩하려다 `UnicodeEncodeError`). `JOBLIB_TEMP_FOLDER`를 ASCII 경로(예: `C:\joblib_tmp`)로 지정하면 해결된다.
+  - 본 실행은 시군구 bootstrap 500회 × 여러 모형이라 오래 걸린다(팀원 기록 기준 landmark 전체 약 2시간, 코호트는 행이 적지만 사건이 많아 비슷하거나 더 걸릴 수 있음).
+- **실행 예**: 안전판 `python cox_rsf.py --biz 편의점 --n-boot 20 --n-diff-boot 20 --n-repeat 2 --skip-rsf` / 본 실행 `python cox_rsf.py` / 민감도 `--end 2026-09-16` /
+  강건성 `--design landmark`.
+
+### 팀원 나머지 스크립트 점검 결과 — 설계(코호트)에 의존하는 건 `cox_rsf.py`뿐
+| 스크립트 | 역할 | 수정 필요? | 비고 |
+|---|---|---|---|
+| `cox_rsf.py` | 5단계 Cox/RSF | **수정함**(⑮) | 코호트·시간·분할이 여기에만 있음 |
+| `km_screening.py` | 4단계 업종·지역·개업코호트 KM(전체 이력) | **소폭 수정함** | 아래 참고. 설계와는 무관 |
+| `eda.py` | 1단계 기술통계 EDA | 코드 수정 불필요 | 재실행하면 새 데이터 기준 수치로 갱신. 단 `CUTOFF=2026-09-28`이 다른 스크립트(09-16)와 달라 생존시간 기준일이 불일치 |
+| `safety_net.py` | 0단계 편의점 KM 안전판 | **삭제함** | 파이프라인 검증용 일회성 스크립트이고 `cox_rsf.py --biz 편의점` 스모크 실행이 그 역할을 대신한다. git 이력에서 복구 가능 |
+| `spatial_features.py` | 사업장별 반경 500m 경쟁밀도 → `5b_spatial_competitor.csv` | 재실행 불필요 | 입력(`localdata_clean.csv`의 관리번호·업종·좌표)이 그대로이고 5b가 7개 업종 사업장 2,143,448행을 **100%** 포함(좌표 없는 150,701행은 NaN). 소진공 원본(`data/sojin_sanga`)은 이 컴퓨터에 없음 |
+| `sojin_density.py` | 소진공 상가정보 → **시군구×업종 점포 수** 표(`5_경쟁밀도_시군구x업종.csv`) | **유지** | `cox_rsf.py`는 이 표를 쓰지 않는다(사업장별 500m인 5b를 씀). 그러나 이 표에는 LOCALDATA에 없는 **개인 슈퍼마켓**(63,862개)이 들어 있어 슈퍼마켓 공급 측 보완과 그룹(시군구×업종) 단위 경쟁밀도에 쓸 수 있다 |
+- **`km_screening.py` 수정 내용**: (1) 주석에는 "대형할인점·슈퍼마켓은 별도 취급"이라 되어 있으나 코드가 없어서, 확정한 결정(⑫)대로 이 두 업종의 전체 이력 KM을 추가했다
+  (`4e_대형할인점_슈퍼마켓_KM.png`, `..._요약.csv`). 결과: 대형할인점 n=744·폐업 114건, 중위생존 미도달, 5년 생존 0.960, 10년 0.932 /
+  슈퍼마켓 n=614·폐업 210건, 중위생존 19.3년, 5년 0.885, 10년 0.709(SSM 체인만이라는 한계 있음). (2) `usecols`로 읽는 컬럼을 6개로 제한(42컬럼 전체를 읽으면 메모리 부담).
+  (3) 한글 글꼴을 `AppleGothic → Malgun Gothic → NanumGothic` 순 대체. 기존 7개 업종 분석 로직은 그대로다.
+- **팀원 산출물 백업**: `km_screening.py` 재실행으로 `output/4_*`, `4c_*`, `4d_*`가 새 데이터 기준으로 바뀌었다. 원본은 `output/_teammate_backup/`에 보관.
+- 모든 스크립트는 `final_joined.csv`가 바뀌었으므로(행 −310, 컬럼 42개) 최종 산출물은 확정 후 한 번씩 재실행해서 갱신해야 한다.
+- **`output/` 정리(74개 → 10개 항목)**: 팀원의 옛 버전(v1/v2, 이전 프랜차이즈 목록·이전 데이터) 산출물 중 재생성 가능하거나 낡은 것을 삭제했다 —
+  실행 로그 9개, 편의점 안전판·`s4only` 변형 실행 결과, 중복 백업, 1·2·3단계 EDA/안전판 표(`eda.py` 등으로 재생성), `_v1_stale/`, 내 스텁 테스트 잔여물.
+  **유지**: `5b_spatial_competitor.csv`(모델 입력), `5_경쟁밀도_시군구x업종.csv`(소진공 시군구 표), 새 데이터로 재생성한 KM(`4*`), `eda_candidates_oe.csv`.
+  팀원의 v2(landmark) **최종 결과 13개와 KM 원본 4개는 `output/_baseline_v2_landmark/`로 옮겨** 재실행 전후(프랜차이즈 HR, BC 기여 등) 비교용으로 남겼다.
+- **소진공 경쟁밀도(M4) 주의**: 5b는 소진공 2026-06 스냅샷 기준 반경 500m 동일업종 점포 수다. 스냅샷에는 추적 기간(1~6월)에 이미 폐업한 점포가 없어,
+  폐업이 잦은 지역일수록 밀도가 낮게 측정되는 결과-의존 편향이 생긴다(현재 S1·S2 민감도에서 "누수"로 표기한 이유). 주 모형(M4)에 넣을 때는 이 한계를 명시하거나,
+  1/1 시점에 영업 중이던 LOCALDATA 점포로 계산한 누수 없는 밀도를 함께 검토한다. 5b를 다시 만들려면 소진공 원본(`data/sojin_sanga/`)이 필요한데 이 컴퓨터에는 없다.
+
+---
+
+## ⑯ 팀원 인수인계 (2026-09-20)
+
+- **넘어가는 것은 코드뿐이다(git)**: `preprocess_localdata.py`, `join_datasets.py`, `cox_rsf.py`, `km_screening.py`, 신규 `build_region_master.py`·`eda_candidates.py`,
+  추적 대상이 된 `franchise_brands.csv`, 삭제된 `safety_net.py`. **CSV는 넘기지 않는다** — `final_joined.csv` 1.3GB 등은 GitHub 파일당 100MB 한도를 넘고, 원본이 같으면
+  스크립트가 같은 결과를 재생성하므로 올려도 얻는 게 없고 오히려 코드와 어긋난 낡은 CSV가 남을 위험만 생긴다. `data/`·`output/`은 `.gitignore`에 넣었다.
+- **원본 파일이 같은지 먼저 확인**(SHA-256 앞 16자리, 다르면 결과도 달라진다):
+  `ABP_CONTEST_DATA.csv` 031c3a5ca96d4873 / `식품_일반음식점.csv` 63afcb4a0cd3d268 / `식품_제과점영업.csv` 32e93fdc827bf8bb /
+  `식품_휴게음식점.csv` 6be3b78ed41adbaa / `생활_대규모점포.csv` 941bfd0cabc282e6
+- **실행 순서**(전처리·조인을 먼저 다시 돌리지 않으면 옛 `final_joined.csv`에 새 컬럼이 없어 `cox_rsf.py`가 멈춘다):
+  `preprocess_bc.py` → `preprocess_localdata.py` → `join_datasets.py` → (선택) `build_region_master.py`, `eda_candidates.py`, `eda.py`, `km_screening.py`.
+  `5b_spatial_competitor.csv`는 기존 것을 그대로 쓴다(재실행 불필요).
+- **정합성 확인용 숫자**(다르면 원본이나 코드 버전을 의심): 프랜차이즈 키워드 한글 145개·영문 4개, 매칭 138,927행(6.48%) / 날짜 정합성 제외 310행 /
+  `localdata_wide` 2,144,806행×37컬럼, `localdata_clean` 27컬럼 / `final_joined` 2,144,806행×42컬럼, 조인 매칭률 99.99%(미매칭 255행) /
+  `bc_group_month` 13,447행 / `region_master` 256개 / `cox_rsf.py` 로그의 `[C] 시작 2026-01-01 at-risk 635,567행 ... 폐업 25,330건 (3.99%)`, 그룹 1,782개·시군구 255개.
+- **RSF 확인과 본 실행은 팀원 환경에서 한다**: 이 컴퓨터(Python 3.13)에는 `scikit-survival`이 설치되지 않아 RSF 경로(블록 정의를 바꿈)는 검증하지 못했다. 순서는
+  1) 스모크 `python cox_rsf.py --biz 편의점 --n-boot 20 --n-diff-boot 20 --n-repeat 2 --rsf-n 20000 --rsf-trees 20 --n-perm 2`
+  2) 업종 더미 경로 확인 `--biz 제과점 스넥 일식회집`(위와 같은 작은 옵션; Cox 쪽은 로컬에서 통과함)
+  3) 본 실행 `python cox_rsf.py`(주 설계, 옵션 기본값) → 강건성 `python cox_rsf.py --design landmark` → 민감도 `--end 2026-09-16`.
+  본 실행 전에 기존 `output/5_*.csv`(접미사 없는 v2 landmark 결과)는 baseline 폴더로 옮겨 새 결과(`..._cohort`, `..._landmark`)와 섞이지 않게 한다.
+- **작업은 main에서**: 옛 `step5-group-time-split` 브랜치에서 그대로 작업하면 같은 파일(전처리·조인·CHANGELOG)에서 다시 충돌한다.
+
+---
+
 ## 산출 파일
 
 | 파일 | 생성 스크립트 | 행수 | 용도 |

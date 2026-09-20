@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-5단계: 2026년 landmark 시점에 영업 중인 사업장의 '78일 단기 폐업 위험 순위' 예측 (Cox PH / Random Survival Forest).
+5단계: 2026년 영업 중인 사업장의 폐업 위험 예측 (Cox PH / Random Survival Forest).
+
+설계(--design)
+  cohort   (기본, 주 설계): 2026-01-01에 영업 중인 사업장 전체를 --end(기본 2026-06-30)까지 추적한다. 시간 분할 없이 그룹 단위 분할만 쓴다.
+           BC카드는 추적 기간과 같은 2026-01~06 집계(룩백 없음)를 그룹 공변량으로 붙이고, 트렌드 변수는 성능 기여가 0이라 뺀다.
+  landmark (강건성 확인): 아래 L1/L2 원안. 결정 근거는 CHANGELOG ⑪⑫.
+  산출 파일 이름에 설계명이 붙는다(기존 landmark 결과를 덮어쓰지 않는다).
+
+[이하 설명은 landmark 설계 기준 — 원안 그대로]
+5단계(원안): 2026년 landmark 시점에 영업 중인 사업장의 '78일 단기 폐업 위험 순위' 예측.
 
 질문 범위(주의): 개업 후 전체 생존시간을 설명하는 모형이 아니다. 각 landmark 시점까지 살아남은 사업장이
 이후 78일 안에 폐업하는지의 위험 순위/확률을 얼마나 맞히는가를 본다.
@@ -32,7 +41,7 @@ from lifelines import CoxPHFitter
 from lifelines.statistics import proportional_hazard_test
 from lifelines.utils import concordance_index
 from scipy.stats import norm, chi2
-from sksurv.ensemble import RandomSurvivalForest
+# RandomSurvivalForest는 --skip-rsf가 아닐 때만 아래에서 import한다(scikit-survival 없이도 Cox 부분을 돌릴 수 있게).
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
@@ -49,44 +58,78 @@ ap.add_argument("--n-perm", type=int, default=10, help="RSF permutation 반복 �
 ap.add_argument("--n-jobs", type=int, default=4)
 ap.add_argument("--skip-rsf", action="store_true")
 ap.add_argument("--tag", default="", help="출력 파일명 뒤에 붙일 접미사(기존 결과를 덮어쓰지 않으려고 사용)")
+ap.add_argument("--design", choices=["cohort", "landmark"], default="cohort",
+                help="cohort: 1/1 단순 코호트(주 설계) / landmark: L1·L2 원안(강건성 확인)")
+ap.add_argument("--end", default="2026-06-30", help="cohort 설계의 추적 종료일(민감도: 2026-09-16)")
 args = ap.parse_args()
 
 DATA_DIR = Path("data")
 OUT_DIR = Path("output")
-TAG = ("_" + "_".join(args.biz) if args.biz else "") + args.tag
+TAG = ("_" + "_".join(args.biz) if args.biz else "") + f"_{args.design}" + args.tag   # 팀원의 기존 산출물을 덮어쓰지 않도록 설계명을 접미사로 붙인다
 RANDOM_STATE = 42
 MAIN_BIZ = ["한식계열", "일식회집", "중국음식", "서양음식", "스넥", "제과점", "편의점"]
 BIZ_LIST = args.biz or MAIN_BIZ
 JOIN_KEY = ["SIDO_NM", "CCG_NM", "bc_업종"]
 REGION_KEY = ["SIDO_NM", "CCG_NM"]
 
-# LOCALDATA 폐업일자는 2026-09-16까지만 실제로 쌓여 있음(이후 4건). L2 종료 = 6/30 + 78일 = 9/16에 맞춰 두 horizon을 같게 한다.
-HORIZON_DAYS = 78
-H_YEARS = HORIZON_DAYS / 365.25
-LANDMARKS = {
-    "L1": dict(landmark=pd.Timestamp("2026-03-31"), months=[202601, 202602, 202603]),
-    "L2": dict(landmark=pd.Timestamp("2026-06-30"), months=[202604, 202605, 202606]),
-}
+# LOCALDATA 폐업일자는 2026-09-16까지만 실제로 쌓여 있음(이후 4건).
+DATA_END = pd.Timestamp("2026-09-16")
+if args.design == "cohort":
+    # 단일 코호트: 2026-01-01에 영업 중인 사업장을 --end까지 추적한다. BC는 추적 기간과 겹치는 2026-01~06 전체 집계(룩백 없음).
+    LANDMARKS = {"C": dict(landmark=pd.Timestamp("2026-01-01"), months=[202601, 202602, 202603, 202604, 202605, 202606],
+                           end=pd.Timestamp(args.end))}
+    assert LANDMARKS["C"]["end"] <= DATA_END, "LOCALDATA 폐업기록이 있는 2026-09-16까지만 추적할 수 있다"
+else:
+    # landmark(팀원 원안): 두 시점 모두 관측창 78일. L2 종료 = 6/30 + 78일 = 9/16
+    LANDMARKS = {
+        "L1": dict(landmark=pd.Timestamp("2026-03-31"), months=[202601, 202602, 202603]),
+        "L2": dict(landmark=pd.Timestamp("2026-06-30"), months=[202604, 202605, 202606]),
+    }
+    for cfg in LANDMARKS.values():
+        cfg["end"] = cfg["landmark"] + pd.Timedelta(days=78)
+    assert LANDMARKS["L2"]["end"] == DATA_END
 for cfg in LANDMARKS.values():
-    cfg["end"] = cfg["landmark"] + pd.Timedelta(days=HORIZON_DAYS)
-assert LANDMARKS["L2"]["end"] == pd.Timestamp("2026-09-16")
+    cfg["horizon"] = (cfg["end"] - cfg["landmark"]).days
+HORIZON_DAYS = next(iter(LANDMARKS.values()))["horizon"]
+assert all(c["horizon"] == HORIZON_DAYS for c in LANDMARKS.values())
+H_YEARS = HORIZON_DAYS / 365.25
+TEST_KEY = "test_group" if args.design == "cohort" else "test_both"   # 학습에 없는 그룹의 평가 세트
+LAST_TAG = list(LANDMARKS)[-1]
 
 # ============================================
 # 1. 로드 + 사건 정의 검증
 # ============================================
 print("=== 로드 ===")
 USECOLS = ["관리번호", "인허가일자", "폐업일자", "bc_업종", "SIDO_NM", "CCG_NM",
-           "is_franchise", "dist_to_region_centroid_m"]
+           "is_franchise", "dist_to_region_centroid_m",
+           "is_multiuse", "log시설총규모_업종내z", "시설총규모_결측여부", "좌표결측", "전화번호_기재"]
 df = pd.read_csv(DATA_DIR / "final_joined.csv", encoding="utf-8-sig", usecols=USECOLS,
                   parse_dates=["인허가일자", "폐업일자"], low_memory=False)
 df = df[df["bc_업종"].isin(BIZ_LIST)].copy()
 
 n_df = len(df)
-spatial = pd.read_csv(OUT_DIR / "5b_spatial_competitor.csv", encoding="utf-8-sig")
-df = df.merge(spatial, on="관리번호", how="left", validate="1:1")
+SPATIAL_PATH = OUT_DIR / "5b_spatial_competitor.csv"
+if SPATIAL_PATH.exists():
+    spatial = pd.read_csv(SPATIAL_PATH, encoding="utf-8-sig")
+    df = df.merge(spatial, on="관리번호", how="left", validate="1:1")
+else:
+    print("⚠ 5b_spatial_competitor.csv 없음 -> 경쟁밀도 민감도(S1, S2) 생략")
+    df["spatial_competitor_500m"] = np.nan
 assert len(df) == n_df
+HAS_SPATIAL = bool(df["spatial_competitor_500m"].notna().any())
 df["log_spatial_competitor"] = np.log1p(df["spatial_competitor_500m"])   # 자기 점포가 포함됐을 수 있음(민감도 분석에서만 사용)
 df["log_dist_to_centroid"] = np.log1p(df["dist_to_region_centroid_m"])
+
+# 좌표가 없는 사업장(약 3%)은 같은 나이·업종 대비 폐업률이 낮다(O/E 0.77, CHANGELOG ⑩). 통째로 제외하면 이 집단이 사라지므로
+# 거리·경쟁밀도는 중앙값으로 채우고 좌표결측 표시를 모형에 넣는다.
+df["coord_missing"] = df["좌표결측"].astype(int)
+for _c in ["log_dist_to_centroid", "log_spatial_competitor"]:
+    df[_c] = df[_c].fillna(df[_c].median())
+# 사업장 확장 후보. 결측/무효 시설총규모는 업종 평균(0)으로 두고 결측 표시를 함께 넣는다.
+df["is_multiuse"] = df["is_multiuse"].fillna(0)
+df["size_z"] = df["log시설총규모_업종내z"].fillna(0)
+df["size_missing"] = df["시설총규모_결측여부"].astype(int)
+df["phone_recorded"] = df["전화번호_기재"].astype(int)
 
 bc = pd.read_csv(DATA_DIR / "bc_clean.csv", encoding="utf-8-sig", dtype={"GENDER_CD": str, "AGE_CD": str})
 # join_datasets.py와 동일: 제물포구는 (구)중구+(구)동구 합성
@@ -129,21 +172,37 @@ def bc_window_covariates(months):
 GROUP_COV = {}
 
 
+def group_history(lm):
+    """시군구x업종 그룹의 lm 이전 1년 폐업률 = 직전 1년 폐업 수 / 1년 전 영업 중 점포 수. lm 이전 정보만 쓴다."""
+    y = pd.Timedelta(days=365)
+
+    def alive(t):
+        return (df["인허가일자"] <= t) & (df["폐업일자"].isna() | (df["폐업일자"] > t))
+
+    n_ago = df[alive(lm - y)].groupby(JOIN_KEY).size().rename("n_ago")
+    closed = df[(df["폐업일자"] > lm - y) & (df["폐업일자"] <= lm)].groupby(JOIN_KEY).size().rename("closed_1y")
+    g = pd.concat([n_ago, closed], axis=1).fillna(0)
+    g["g_closure_rate_1y"] = g["closed_1y"] / g["n_ago"].clip(lower=1)
+    return g[["g_closure_rate_1y"]].reset_index()
+
+
 def build_landmark(tag, cfg):
-    lm, end = cfg["landmark"], cfg["end"]
+    lm, end, hz = cfg["landmark"], cfg["end"], cfg["horizon"]
     d = df[(df["인허가일자"] <= lm) & (df["폐업일자"].isna() | (df["폐업일자"] > lm))].copy()
     closed = d["폐업일자"].notna() & (d["폐업일자"] <= end)
     d["event"] = closed.astype(int)
-    d["duration"] = np.where(closed, (d["폐업일자"] - lm).dt.days, HORIZON_DAYS) / 365.25
+    d["duration"] = np.where(closed, (d["폐업일자"] - lm).dt.days, hz) / 365.25
     d["log_age"] = np.log1p((lm - d["인허가일자"]).dt.days / 365.25)   # log(1+영업연수(년))
     cov = bc_window_covariates(cfg["months"])
     assert not cov.duplicated(JOIN_KEY).any()
     GROUP_COV[tag] = cov.assign(landmark=tag)
     n0 = len(d)
     d = d.merge(cov, on=JOIN_KEY, how="left", validate="m:1")
+    d = d.merge(group_history(lm), on=JOIN_KEY, how="left", validate="m:1")
+    d["g_closure_rate_1y"] = d["g_closure_rate_1y"].fillna(0)   # 1년 전 점포도 폐업도 없는 그룹
     assert len(d) == n0, "그룹 공변량 조인으로 행이 증식됨"
     d["landmark"] = tag
-    print(f"[{tag}] landmark {lm.date()} at-risk {len(d):,}행 / 관측창 {HORIZON_DAYS}일({lm.date()}~{end.date()}) "
+    print(f"[{tag}] 시작 {lm.date()} at-risk {len(d):,}행 / 관측창 {hz}일({lm.date()}~{end.date()}) "
           f"/ 폐업 {int(d['event'].sum()):,}건 ({d['event'].mean()*100:.2f}%)")
     return d
 
@@ -156,26 +215,34 @@ BIZ_DUMMY = [f"biz_{b}" for b in BIZ_LIST[1:]]
 
 COV_SHARE = ["amt_share_gender_1", "amt_share_gender_2",           # 성별 준거범주: 3(법인)
              "amt_share_age_2", "amt_share_age_3", "amt_share_age_4", "amt_share_age_5", "amt_share_age_6"]  # 연령 준거범주: 1
-COV_TREND = ["bc_amt_trend_slope", "bc_amt_cv"]                     # 월 자료 3개로 만든 단순 변화량/변동성
+COV_TREND = ["bc_amt_trend_slope", "bc_amt_cv"] if args.design == "landmark" else []   # 주 설계(cohort)에서는 성능 기여가 0이라 제외(CHANGELOG ⑪)
 COV_GROUP = COV_SHARE + COV_TREND
 STORE_CORE = ["log_age", "is_franchise", "log_dist_to_centroid"]
+STORE_EXT = ["is_multiuse", "size_z", "size_missing", "coord_missing", "phone_recorded"]   # EDA 후보(CHANGELOG ⑩)
+COV_HIST = ["g_closure_rate_1y"]   # 그룹의 직전 1년 폐업률(시작 시점 이전 정보만)
 
 # 좌표 결측(좌표가 없으면 중심점 거리도 못 구함) 제외 전후 비교: complete-case 선택편향 확인
 miss = full["dist_to_region_centroid_m"].isna()
-cmp_tbl = full[full["landmark"] == "L2"].assign(좌표결측=miss).groupby("좌표결측").agg(
+cmp_tbl = full[full["landmark"] == LAST_TAG].assign(좌표결측=miss).groupby("좌표결측").agg(
     사업장수=("event", "size"), 폐업률_pct=("event", lambda s: s.mean() * 100), 평균_log_age=("log_age", "mean"),
     프랜차이즈_pct=("is_franchise", lambda s: s.mean() * 100)).round(3)
-biz_mix = pd.crosstab(full[full["landmark"] == "L2"]["bc_업종"], miss[full["landmark"] == "L2"], normalize="columns").mul(100).round(1)
+biz_mix = pd.crosstab(full[full["landmark"] == LAST_TAG]["bc_업종"], miss[full["landmark"] == LAST_TAG], normalize="columns").mul(100).round(1)
 biz_mix.columns = [f"업종비중_pct_좌표{'결측' if c else '있음'}" for c in biz_mix.columns]
-print("\n=== 좌표 결측 vs 비결측 (L2) ===")
+print(f"\n=== 좌표 결측 vs 비결측 ({LAST_TAG}) ===")
 print(cmp_tbl.to_string())
 print(biz_mix.to_string())
 cmp_tbl.reset_index().to_csv(OUT_DIR / f"5_좌표결측비교{TAG}.csv", index=False, encoding="utf-8-sig")
 biz_mix.reset_index().to_csv(OUT_DIR / f"5_좌표결측_업종비중{TAG}.csv", index=False, encoding="utf-8-sig")
 
 n0 = len(full)
-full = full.dropna(subset=COV_GROUP + STORE_CORE + ["log_spatial_competitor"])
-print(f"\n공변량 결측(BC 마스킹/좌표없음) 제거: {n0:,} -> {len(full):,}행")
+full = full.dropna(subset=COV_GROUP + STORE_CORE)
+print(f"\n공변량 결측(BC 마스킹/BC 조인 실패) 제거: {n0:,} -> {len(full):,}행 (좌표 없는 사업장은 제거하지 않고 표시 변수로 처리)")
+# 상수가 되는 열(예: 업종 하나만 돌릴 때 편의점의 크기 표준화값)은 Cox를 특이하게 만들므로 후보에서 뺀다
+_pruned = [c for c in STORE_EXT + COV_HIST if full[c].nunique() <= 1]
+if _pruned:
+    print("상수 열 제외:", _pruned)
+STORE_EXT = [c for c in STORE_EXT if c not in _pruned]
+COV_HIST = [c for c in COV_HIST if c not in _pruned]
 
 # 그룹/시군구 식별자
 groups = full[JOIN_KEY].drop_duplicates().reset_index(drop=True)
@@ -198,6 +265,8 @@ def make_split(level, seed):
 
 def make_sets(col, tr_ids):
     is_tr = full[col].isin(tr_ids)
+    if args.design == "cohort":   # 단일 코호트: 시간 분할 없이 그룹 분할만
+        return {"train": full[is_tr], "test_group": full[~is_tr]}
     return {"train": full[is_tr & (full["landmark"] == "L1")],
             "valid_time": full[is_tr & (full["landmark"] == "L2")],
             "test_group": full[~is_tr & (full["landmark"] == "L1")],
@@ -209,10 +278,11 @@ def make_sets(col, tr_ids):
 # ============================================
 col, tr_ids, te_ids = make_split("group", RANDOM_STATE)
 sets = make_sets(col, tr_ids)
-train, test = sets["train"], sets["test_both"]
+train, test = sets["train"], sets[TEST_KEY]
 assert not (tr_ids & te_ids)
-assert not (set(train["관리번호"]) & set(sets["test_both"]["관리번호"]))
-assert not (set(train["관리번호"]) & set(sets["test_group"]["관리번호"]))
+for _k in ("test_group", "test_both"):   # valid_time은 학습과 같은 사업장의 다른 시점이라 겹치는 게 정상
+    if _k in sets:
+        assert not (set(train["관리번호"]) & set(sets[_k]["관리번호"]))
 assert train["duration"].max() <= H_YEARS + 1e-9
 
 split_summary = pd.DataFrame([
@@ -222,7 +292,7 @@ split_summary = pd.DataFrame([
 print("\n=== 분할 요약 (그룹 분할) ===")
 print(split_summary.to_string(index=False))
 split_summary.to_csv(OUT_DIR / f"5_split_요약{TAG}.csv", index=False, encoding="utf-8-sig")
-te_regions = set(sets["test_both"]["region_id"])
+te_regions = set(sets[TEST_KEY]["region_id"])
 tr_regions = set(train["region_id"])
 print(f"test 그룹이 속한 시군구 중 train에도 나오는 시군구: {len(te_regions & tr_regions)}/{len(te_regions)}"
       " (시군구 단위로는 겹침 -> 지역 외삽은 시군구 hold-out으로 따로 평가)")
@@ -260,14 +330,23 @@ EB_COLS = ["eb_" + c for c in COV_SHARE]
 for c in COV_SHARE:
     full["eb_" + c] = full["eb_" + c].fillna(full[c])   # prior를 못 만든 소수 그룹은 원자료 사용
 sets = make_sets(col, tr_ids)
-train, test = sets["train"], sets["test_both"]
+train, test = sets["train"], sets[TEST_KEY]
 
-MODELS = {"M0 업종만": [], "M1 +영업연수": ["log_age"], "M2 +프랜차이즈·입지": STORE_CORE, "M3 +BC카드": STORE_CORE + COV_GROUP}
-SENS = {"S1 M2+경쟁밀도(L1 미래정보 누수)": STORE_CORE + ["log_spatial_competitor"],
-        "S2 M3+경쟁밀도(L1 미래정보 누수)": STORE_CORE + COV_GROUP + ["log_spatial_competitor"],
-        "S3 M3 구성비 EB축소(prior=train그룹)": STORE_CORE + EB_COLS + COV_TREND,
-        "S4 M3 + 마스킹(x) 금액비중": STORE_CORE + COV_GROUP + ["age_x_share"],   # 성별x와 연령x는 항상 같은 행이라 값이 같아 하나만 사용
-        "S5 M3 추세·CV 제외": STORE_CORE + COV_SHARE}
+BASE, REF, TOP = "M2 +프랜차이즈·입지", "M2h +지역 최근폐업률", "M3 +BC카드"
+MODELS = {"M0 업종만": [], "M1 +영업연수": ["log_age"], BASE: STORE_CORE,
+          "M2x +사업장 확장변수": STORE_CORE + STORE_EXT,
+          REF: STORE_CORE + STORE_EXT + COV_HIST,
+          TOP: STORE_CORE + STORE_EXT + COV_HIST + COV_GROUP}
+# BC카드 블록의 추가 기여는 REF(사업장 변수 + 지역 최근 폐업률을 모두 통제한 모형) 대비로 본다. BASE(M2) 대비는 참고용.
+SNAP_NOTE = "추적 이후 스냅샷 누수" if args.design == "cohort" else "L1 미래정보 누수"
+SENS = {}
+if HAS_SPATIAL:
+    SENS[f"S1 M2h+경쟁밀도({SNAP_NOTE})"] = MODELS[REF] + ["log_spatial_competitor"]
+    SENS[f"S2 M3+경쟁밀도({SNAP_NOTE})"] = MODELS[TOP] + ["log_spatial_competitor"]
+SENS["S3 M3 구성비 EB축소(prior=train그룹)"] = [c for c in MODELS[TOP] if c not in COV_SHARE] + EB_COLS
+SENS["S4 M3 + 마스킹(x) 금액비중"] = MODELS[TOP] + ["age_x_share"]   # 성별x와 연령x는 항상 같은 행이라 값이 같아 하나만 사용
+if COV_TREND:
+    SENS["S5 M3 추세·CV 제외"] = [c for c in MODELS[TOP] if c not in COV_TREND]
 ALL_MODELS = {**MODELS, **SENS}
 
 
@@ -336,7 +415,7 @@ for name, cols in ALL_MODELS.items():
     for sname, d in sets.items():
         ov, wb = cindex(d, cox_risk(cph, cols, d))
         perf_rows.append({"model": name, "set": sname, "c_index": round(ov, 4), "c_index_within_biz": round(wb, 4)})
-    if name in ("M2 +프랜차이즈·입지", "M3 +BC카드"):
+    if name in (BASE, REF, TOP):
         for sname, d in sets.items():
             horizon_metrics(name, sname, d, cox_prob(cph, cols, d))
 print(pd.DataFrame(perf_rows).pivot(index="model", columns="set", values="c_index")[list(sets)].to_string())
@@ -346,8 +425,8 @@ print(pd.DataFrame(perf_rows).pivot(index="model", columns="set", values="c_inde
 # ============================================
 # 6. M3 vs M2: C-index 차이의 paired 시군구 cluster bootstrap
 # ============================================
-c2, c3 = MODELS["M2 +프랜차이즈·입지"], MODELS["M3 +BC카드"]
-risk2, risk3 = cox_risk(cox_fits["M2 +프랜차이즈·입지"], c2, test), cox_risk(cox_fits["M3 +BC카드"], c3, test)
+c2, c3 = MODELS[BASE], MODELS[TOP]
+risk_by = {n: cox_risk(cox_fits[n], MODELS[n], test) for n in (BASE, REF, TOP)}
 te_dur, te_ev = test["duration"].to_numpy(), test["event"].to_numpy()
 te_rows_by_region = test.reset_index(drop=True).groupby("region_id").indices
 te_region_ids = np.array(list(te_rows_by_region))
@@ -359,19 +438,22 @@ def _diff_boot(seed, dur, ev, r2, r3, rows_by_region, region_ids):
     return concordance_index(dur[rows], -r3[rows], ev[rows]) - concordance_index(dur[rows], -r2[rows], ev[rows])
 
 
-print(f"\n=== [test_both] M3 - M2 C-index 차이: 시군구 cluster bootstrap B={args.n_diff_boot} ===")
-diffs = np.array(Parallel(n_jobs=args.n_jobs)(delayed(_diff_boot)(3000 + i, te_dur, te_ev, risk2, risk3, te_rows_by_region, te_region_ids)
-                                  for i in range(args.n_diff_boot)))
-d_pt = concordance_index(te_dur, -risk3, te_ev) - concordance_index(te_dur, -risk2, te_ev)
-d_lo, d_hi = np.percentile(diffs, [2.5, 97.5])
-print(f"차이 {d_pt:+.4f}  95% CI [{d_lo:+.4f}, {d_hi:+.4f}]  (CI가 0을 포함하면 유의한 개선이라 할 수 없음)")
-pd.DataFrame([{"diff_M3_minus_M2": d_pt, "ci_lo": d_lo, "ci_hi": d_hi, "B": args.n_diff_boot}]).to_csv(
-    OUT_DIR / f"5_C-index차이_CI{TAG}.csv", index=False, encoding="utf-8-sig")
+print(f"\n=== [{TEST_KEY}] BC카드 블록의 추가 기여(C-index 차이): 시군구 cluster bootstrap B={args.n_diff_boot} ===")
+diff_rows = []
+for ref_name in (REF, BASE):
+    r_ref, r_top = risk_by[ref_name], risk_by[TOP]
+    diffs = np.array(Parallel(n_jobs=args.n_jobs)(delayed(_diff_boot)(3000 + i, te_dur, te_ev, r_ref, r_top, te_rows_by_region, te_region_ids)
+                                      for i in range(args.n_diff_boot)))
+    d_pt = concordance_index(te_dur, -r_top, te_ev) - concordance_index(te_dur, -r_ref, te_ev)
+    d_lo, d_hi = np.percentile(diffs, [2.5, 97.5])
+    print(f"{TOP} - {ref_name}: 차이 {d_pt:+.4f}  95% CI [{d_lo:+.4f}, {d_hi:+.4f}]  (CI가 0을 포함하면 유의한 개선이라 할 수 없음)")
+    diff_rows.append({"reference": ref_name, "top": TOP, "diff": d_pt, "ci_lo": d_lo, "ci_hi": d_hi, "B": args.n_diff_boot})
+pd.DataFrame(diff_rows).to_csv(OUT_DIR / f"5_C-index차이_CI{TAG}.csv", index=False, encoding="utf-8-sig")
 
 # ============================================
 # 7. M3 계수: 시군구 cluster bootstrap(B=500) + BC 블록 joint 검정
 # ============================================
-cph3 = cox_fits["M3 +BC카드"]
+cph3 = cox_fits[TOP]
 X_cols = c3 + BIZ_DUMMY
 tr_r = train.reset_index(drop=True)
 Xm, dur_m, ev_m = tr_r[X_cols].to_numpy(dtype=float), tr_r["duration"].to_numpy(), tr_r["event"].to_numpy()
@@ -413,7 +495,8 @@ b_vec = coef.to_numpy()[bc_idx]
 sigma = np.cov(reps[:, bc_idx], rowvar=False)
 wald = float(b_vec @ np.linalg.pinv(sigma) @ b_vec)
 df_bc = len(bc_idx)
-lr = 2 * (cph3.log_likelihood_ - cox_fits["M2 +프랜차이즈·입지"].log_likelihood_)
+#  BC 블록만 추가된 모형(REF=M2h)과 M3의 로그우도 차이(둘은 COV_GROUP만큼만 다르다)
+lr = 2 * (cph3.log_likelihood_ - cox_fits[REF].log_likelihood_)
 joint = pd.DataFrame([{"test": "Wald (시군구 cluster bootstrap 공분산)", "stat": wald, "df": df_bc, "p": chi2.sf(wald, df_bc)},
                       {"test": "LR (사업장 독립 가정, 참고용·반보수적)", "stat": lr, "df": df_bc, "p": chi2.sf(lr, df_bc)}])
 print("\nBC카드 9개 변수 블록 joint 검정:")
@@ -434,7 +517,7 @@ except Exception as e:
     print("PH 검정 실패:", repr(e))
 
 # ============================================
-# 9. 반복 분할 (그룹 분할 / 시군구 hold-out) — Cox 4개 모형의 test_both C-index
+# 9. 반복 분할 (그룹 분할 / 시군구 hold-out) — Cox 모형들의 평가 세트 C-index
 # ============================================
 print(f"\n=== 반복 분할 {args.n_repeat}회 x (그룹, 시군구 hold-out) ===")
 rep_rows = []
@@ -442,13 +525,14 @@ for level in ["group", "region"]:
     for r in range(args.n_repeat):
         col_r, tr_r_ids, _ = make_split(level, 1000 + r)
         s = make_sets(col_r, tr_r_ids)
-        tr_d, te_d = s["train"], s["test_both"]
+        tr_d, te_d = s["train"], s[TEST_KEY]
         row = {"split": level, "seed": 1000 + r, "test_events": int(te_d["event"].sum())}
         for name, cols in MODELS.items():
             cph = fit_cox(tr_d, cols)
             ov, wb = cindex(te_d, cox_risk(cph, cols, te_d))
             row[f"{name}|overall"], row[f"{name}|within_biz"] = ov, wb
-        row["diff_M3-M2"] = row["M3 +BC카드|overall"] - row["M2 +프랜차이즈·입지|overall"]
+        row["diff_M3-M2h"] = row[f"{TOP}|overall"] - row[f"{REF}|overall"]
+        row["diff_M3-M2"] = row[f"{TOP}|overall"] - row[f"{BASE}|overall"]
         rep_rows.append(row)
     print(f"  {level} 완료")
 rep = pd.DataFrame(rep_rows)
@@ -462,6 +546,7 @@ rep_sum.to_csv(OUT_DIR / f"5_반복분할_요약{TAG}.csv", encoding="utf-8-sig"
 # 10. Random Survival Forest (M3 변수, 주분할) + 블록 permutation 중요도
 # ============================================
 if not args.skip_rsf:
+    from sksurv.ensemble import RandomSurvivalForest
     print("\n=== Random Survival Forest ===")
     RSF_COLS = c3 + BIZ_DUMMY
     rsf_tr = train.sample(n=min(args.rsf_n, len(train)), random_state=RANDOM_STATE)
@@ -487,9 +572,11 @@ if not args.skip_rsf:
     # 블록 permutation: 그룹 단위 변수는 그룹 통째로 다른 그룹 값과 맞바꾸고, 구성비/업종은 블록 전체를 함께 바꾼다.
     BLOCKS = {"영업연수": ("store", ["log_age"]), "프랜차이즈 여부": ("store", ["is_franchise"]),
               "중심지까지 거리": ("store", ["log_dist_to_centroid"]),
+              "사업장 확장변수(다중이용·크기·좌표결측·전화)": ("store", STORE_EXT),
+              "지역 최근 폐업률": ("group", COV_HIST),
               "BC 성별 비중(2개)": ("group", ["amt_share_gender_1", "amt_share_gender_2"]),
               "BC 연령 비중(5개)": ("group", ["amt_share_age_2", "amt_share_age_3", "amt_share_age_4", "amt_share_age_5", "amt_share_age_6"]),
-              "BC 추세·변동성(2개)": ("group", ["bc_amt_trend_slope", "bc_amt_cv"]),
+              "BC 추세·변동성(2개)": ("group", COV_TREND),
               "업종 더미": ("group", BIZ_DUMMY)}
     te_s = test.sample(n=min(40_000, len(test)), random_state=RANDOM_STATE).reset_index(drop=True)
     base_ci = concordance_index(te_s["duration"], -rsf.predict(te_s[RSF_COLS]), te_s["event"])
@@ -512,7 +599,7 @@ if not args.skip_rsf:
         imp_rows.append({"block": bname, "kind": kind, "importance_mean": np.mean(drops), "importance_sd": np.std(drops, ddof=1),
                          "importance_min": np.min(drops), "importance_max": np.max(drops)})
     imp = pd.DataFrame(imp_rows).sort_values("importance_mean", ascending=False)
-    print(f"\nRSF 블록 permutation 중요도 (test_both 표본 {len(te_s):,}행, 기준 C-index {base_ci:.4f}, {args.n_perm}회 반복):")
+    print(f"\nRSF 블록 permutation 중요도 ({TEST_KEY} 표본 {len(te_s):,}행, 기준 C-index {base_ci:.4f}, {args.n_perm}회 반복):")
     print(imp.round(4).to_string(index=False))
     imp.to_csv(OUT_DIR / f"5_RSF_블록중요도{TAG}.csv", index=False, encoding="utf-8-sig")
 
@@ -546,5 +633,5 @@ print("\n업종 내 C-index:")
 print(perf.pivot(index="model", columns="set", values="c_index_within_biz")[list(sets)].to_string())
 print(f"\n{HORIZON_DAYS}일 고정기간 지표 (Brier skill > 0이면 학습 폐업률 상수 예측보다 낫다):")
 print(hz.to_string(index=False))
-print("\n[test_both] 예측확률 십분위별 예측 vs 실제 폐업률(%):")
+print(f"\n[{TEST_KEY}] 예측확률 십분위별 예측 vs 실제 폐업률(%):")
 print(cal.to_string(index=False))

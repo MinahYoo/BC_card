@@ -6,7 +6,7 @@ from lifelines.statistics import multivariate_logrank_test
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-plt.rcParams["font.family"] = "AppleGothic"
+plt.rcParams["font.family"] = ["AppleGothic", "Malgun Gothic", "NanumGothic"]   # macOS / Windows / Linux 순으로 있는 글꼴을 사용
 plt.rcParams["axes.unicode_minus"] = False
 from pathlib import Path
 
@@ -15,7 +15,8 @@ OUT_DIR = Path("output")
 CUTOFF = pd.Timestamp("2026-09-16")  # LOCALDATA 폐업일자는 09-16까지만 실제로 쌓여 있음(이후 4건)
 
 df = pd.read_csv(DATA_DIR / "final_joined.csv", encoding="utf-8-sig",
-                  parse_dates=["인허가일자", "폐업일자"], low_memory=False)
+                  parse_dates=["인허가일자", "폐업일자"], low_memory=False,
+                  usecols=["인허가일자", "폐업일자", "event_observed", "bc_업종", "SIDO_NM", "CCG_NM"])   # final_joined 42컬럼 전부를 읽으면 메모리가 크다
 df["duration_years"] = (df["폐업일자"].fillna(CUTOFF) - df["인허가일자"]).dt.days / 365.25
 
 # 대형할인점/슈퍼마켓은 표본 극소 + 체인 출점 역학이 달라 별도 취급(팀 매핑 문서 방침)
@@ -91,3 +92,28 @@ for (biz, coh), sub in sub_all.groupby(["bc_업종", "cohort"], observed=True):
 cohort_km = pd.DataFrame(crow).pivot(index="bc_업종", columns="cohort", values="surv_5y").round(3)
 cohort_km.to_csv(OUT_DIR / "4d_개업코호트별_5년생존율.csv", encoding="utf-8-sig")
 print("\n개업 코호트별 5년 생존율:\n", cohort_km.to_string())
+
+# ============================================
+# 별도 취급 업종(대형할인점·슈퍼마켓) — 전체 이력 KM으로만 본다
+# ============================================
+# 2026년 폐업이 각각 14건·9건뿐이라 생존모델(Cox/RSF)은 돌리지 않는다(CHANGELOG ⑫). 폐업 이력 자체는 114건·210건이라 KM은 가능하다.
+# 주의: BC카드 공변량과는 연결하지 않는다(BC는 2026년 6개월뿐). 슈퍼마켓은 LOCALDATA에 SSM 체인만 있어 BC 슈퍼마켓 소비(대부분 개인슈퍼)와
+# 대상이 다르다. 대규모점포의 '직권취소' 등은 event=0(censored)이라 실제 폐업 이력이 소폭 과소 집계될 수 있다.
+special_biz = ["대형할인점", "슈퍼마켓"]
+fig2, ax2 = plt.subplots(figsize=(9, 6))
+srows = []
+for biz in special_biz:
+    sub = df[df["bc_업종"] == biz]
+    k = KaplanMeierFitter().fit(sub["duration_years"], sub["event_observed"], label=biz)
+    k.plot_survival_function(ax=ax2)
+    srows.append({"bc_업종": biz, "n": len(sub), "n_event": int(sub["event_observed"].sum()),
+                  "median_surv_years": k.median_survival_time_,
+                  "surv_5y": k.survival_function_at_times(5).values[0], "surv_10y": k.survival_function_at_times(10).values[0]})
+ax2.set_xlabel("영업 기간(년)")
+ax2.set_ylabel("생존확률")
+ax2.set_title("대형할인점·슈퍼마켓 Kaplan-Meier (전체 이력, 생존모델 제외 업종)")
+fig2.tight_layout()
+fig2.savefig(OUT_DIR / "4e_대형할인점_슈퍼마켓_KM.png", dpi=120)
+special = pd.DataFrame(srows)
+special.to_csv(OUT_DIR / "4e_대형할인점_슈퍼마켓_KM_요약.csv", index=False, encoding="utf-8-sig")
+print("\n대형할인점·슈퍼마켓 KM(전체 이력, 생존모델 제외 업종):\n", special.round(3).to_string(index=False))

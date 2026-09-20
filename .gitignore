@@ -1,3 +1,7 @@
 *.csv
 # 전처리가 읽는 수동 관리 목록이라 추적해야 한다
 !franchise_brands.csv
+.venv*/
+# 원본/중간/결과 데이터는 각자 로컬에서 생성한다(저장소에는 코드만)
+data/
+output/

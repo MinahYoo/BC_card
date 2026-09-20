@@ -247,7 +247,7 @@ def _fold(sec, plain, summary="통계 상세 (심사·연구자용)"):
 
 
 SUMMARY = (
-    '<div class="sumbox"><h2 style="margin:0 0 4px">이 서비스는 무엇이고, 결론은 무엇인가요?</h2>'
+    '<div class="sumbox card primary"><p class="eyebrow">OVERVIEW</p><h2 style="margin:0 0 4px">이 서비스는 무엇이고, 결론은 무엇인가요?</h2>'
     '<p class="plain" style="margin:0 0 8px">전국 시군구의 7개 업종 점포가 2026년 상반기 180일 동안 실제로 문을 닫은 기록을 바탕으로, 어느 지역·업종이 평균 점포보다 폐업 위험이 높은지, 그리고 왜 그런지를 지도로 보여 줘요.</p>'
     '<ol class="sumlist"><li><b>위험은 업종보다 지역에서 더 크게 갈려요.</b> 시군구만으로 설명한 정도가 업종만의 약 4배예요.</li>'
     '<li><b>소비가 많다고 버티지는 않아요.</b> BC카드 소비 지표를 더해도 폐업 예측은 좋아지지 않았어요.</li>'
@@ -271,7 +271,7 @@ def implications(sec):
     out = ['<h2 id="implications">BC카드에 주는 시사점</h2><p class="sec-sub">누가 · 무엇을 · 어떤 데이터로 할 수 있는지로 정리했어요(분석 결과를 활용처 관점으로 다시 쓴 것이며, 사실 내용은 그대로예요).</p><div class="imps">']
     for (head, body), (h0, who, what, data) in zip(items, IMPS):
         assert head == h0, f"시사점 문구가 달라짐: {head}"
-        out.append(f'<div class="imp"><h4>{head}</h4><dl><dt>누가</dt><dd>{who}</dd><dt>무엇을</dt><dd>{what}</dd><dt>어떤 데이터로</dt><dd>{data}</dd></dl><p class="cap" style="margin:6px 0 0">{body.strip()}</p></div>')
+        out.append(f'<div class="imp primary"><h4>{head}</h4><dl><dt>누가</dt><dd>{who}</dd><dt>무엇을</dt><dd>{what}</dd><dt>어떤 데이터로</dt><dd>{data}</dd></dl><p class="cap" style="margin:6px 0 0">{body.strip()}</p></div>')
     out.append("</div>")
     return "".join(out)
 
@@ -367,6 +367,13 @@ def overview():
 BANNER = '<div id="survlink" class="survlink" hidden></div>'
 
 
+def _band(html, eyebrow, alt=False, first=False):
+    """섹션 하나를 배경 교차용 밴드로 감싸고 제목 위에 작은 라벨(eyebrow)을 단다."""
+    if eyebrow:
+        html = re.sub(r"(<h2[ >])", f'<p class="eyebrow">{eyebrow}</p>\\1', html, count=1)
+    return f'<div class="band{" alt" if alt else ""}{" first" if first else ""}">{html}</div>'
+
+
 def step2(h):
     # 차트·표 제목의 용어 풀이 + “읽는 법”
     dc = tip("ΔC-index", "Δ(델타)는 ‘변화량’이에요. 어떤 요인 묶음을 뺐을 때 점포 단위 판별력(C-index)이 얼마나 떨어지는지예요. 클수록 그 묶음이 중요해요.")
@@ -426,7 +433,12 @@ def step2(h):
     s5 = (m5.group(1) + '<p class="plain">이웃 지역의 폐업 흐름을 모형에 넣으니, 모형이 놓치던 ‘이웃끼리 닮은 패턴’이 사라졌어요.</p>'
           f'<details class="stat"><summary>통계 상세 (심사·연구자용)</summary><div class="statbody">{m5.group(2)}</div></details>' + s5[m5.end():])
     lim = secs[kl] + CODE_TABLE
-    body = SUMMARY + TOC + BANNER + overview() + implications(secs[k6]) + find + s1 + s2 + s3 + secs[k4] + s5 + lim
+    # 핵심 결론 5개는 primary 카드 하나로 묶는다(페이지의 primary는 요약 1 + 결론 1 + 시사점 4 = 6개)
+    fi = find.index('<div class="finding">')
+    find = find[:fi] + '<div class="card primary findings-box">' + find[fi:] + "</div>"
+    body = (_band(SUMMARY, None, first=True) + TOC + BANNER + _band(overview(), "EVIDENCE", alt=True) + _band(implications(secs[k6]), "IMPLICATIONS")
+            + _band(find, "CONCLUSION", alt=True) + _band(s1, "MODEL") + _band(s2, "REGION VS INDUSTRY", alt=True) + _band(s3, "BC DATA")
+            + _band(secs[k4], "RISK GROUPS", alt=True) + _band(s5, "SPATIAL PATTERN") + _band(lim, "LIMITS", alt=True))
     for hid, pre in (("conclusions", "<h2>핵심 결론"), ("ch1", "<h2>1장."), ("ch2", "<h2>2장."), ("ch3", "<h2>3장."), ("ch4", "<h2>4장."), ("ch5", "<h2>5장."), ("limits", "<h2>데이터와 한계")):
         body = _rep(body, pre, pre.replace("<h2>", f'<h2 id="{hid}">'))
     return body

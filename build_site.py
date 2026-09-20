@@ -55,10 +55,10 @@ button,select,input{font-family:inherit}
 .top .in{max-width:1180px;margin:0 auto;padding:10px var(--s4);display:flex;flex-wrap:wrap;gap:var(--s2) 18px;align-items:center;justify-content:space-between}
 .brand{font-weight:800;font-size:var(--fs-md)} .brand span{color:var(--sub);font-weight:500;font-size:var(--fs-sm);margin-left:var(--s2)}
 nav{display:flex;gap:var(--s1);flex-wrap:wrap}
-nav button{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:5px 14px 4px;border-radius:var(--r-md);font-size:var(--fs-sm);line-height:1.3;cursor:pointer;display:flex;flex-direction:column;align-items:center}
-nav button small{font-size:var(--fs-sm);font-weight:400;color:var(--sub)}@media (max-width:1000px){nav button small{display:none}} nav button[aria-selected="true"] small{color:inherit;opacity:.92}
-nav button:hover{border-color:var(--acc);color:var(--acc)}
-nav button[aria-selected="true"],nav button[aria-selected="true"]:hover{background:var(--acc);border-color:var(--acc);color:var(--acc-fg)}
+nav button{border:1px solid transparent;background:transparent;color:var(--fg);padding:5px 14px 4px;border-radius:var(--r-md);font-size:var(--fs-sm);line-height:1.3;cursor:pointer;display:flex;flex-direction:column;align-items:center}
+nav button small{font-size:var(--fs-xs);font-weight:400;color:var(--sub)}@media (max-width:1000px){nav button small{display:none}} nav button[aria-selected="true"] small{color:inherit;opacity:.92}
+nav button:hover{background:var(--accent-tint);color:var(--accent-strong)}
+nav button[aria-selected="true"],nav button[aria-selected="true"]:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 main.wide{max-width:1180px;padding-bottom:80px} section.tab{display:none;padding-top:var(--s4)} section.tab.on{display:block}
 .hero{padding:2px 0 var(--s2)} .hero h1{font-size:clamp(28px,4.2vw,var(--fs-2xl));font-weight:800;letter-spacing:-.02em;line-height:1.2;margin:0 0 var(--s1)} .hero p{margin:0;color:var(--sub);font-size:var(--fs-sm)}
 .ctrl{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:var(--s2) 0 14px}
@@ -146,7 +146,7 @@ body.guide-on #map{height:clamp(400px,calc(100vh - 355px),760px)}
 @media (max-width:767px){body.guide-on #map{height:min(62vh,520px)}}
 .cmp{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4)}@media (max-width:767px){.cmp{grid-template-columns:1fr}}
 .cmp h4{margin:0}.cmp .big b{font-size:var(--fs-2xl)}.cmpdiff{margin:12px 0 0;font-size:var(--fs-md)}
-.sumbox{background:var(--card);border:1px solid var(--acc);border-radius:var(--r-md);padding:18px 20px;margin:0 0 8px}
+.sumbox{padding:var(--s5);margin:0 0 var(--s2)}
 .sumbox h2{font-size:var(--fs-xl);margin:0 0 var(--s1)}.sumlist{margin:0 0 4px;padding-left:22px}.sumlist li{margin:5px 0;font-size:var(--fs-md)}
 .sumcta{display:flex;flex-wrap:wrap;gap:var(--s2)}.sumcta a.chip-b{text-decoration:none;display:inline-block}
 .plain{font-size:var(--fs-md);margin:6px 0 10px}
@@ -162,6 +162,30 @@ details.stat[open]>summary{border-bottom:1px solid var(--line)}
 .imp dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:var(--fs-sm)}
 .imp dt{font-weight:700;color:var(--acc);white-space:nowrap}.imp dd{margin:0}
 .lgbox{margin:0 0 12px}
+/* 카드 3단계 — primary(핵심·시사점, 페이지당 6개 이내) / default(흰 배경+얇은 테두리+sm 그림자) / subtle(테두리만) */
+.card{box-shadow:var(--sh-sm)}
+.primary{background:var(--accent-tint);border:1px solid transparent;border-left:4px solid var(--accent);box-shadow:none}
+.card.subtle,details.stat{background:transparent;box-shadow:none}
+.imp.primary{border-radius:var(--r-md);padding:var(--s4) var(--s5)}
+.findings-box{padding:var(--s2) var(--s5)}
+.findings-box .finding{background:none;border:0;border-bottom:1px solid color-mix(in srgb,var(--accent) 22%,transparent);border-radius:0;margin:0;padding:var(--s4) 0;box-shadow:none}
+.findings-box .finding:last-child{border-bottom:0}
+/* 섹션 리듬 — 배경 교차(--bg / --bg-alt) + 큰 여백, 제목 위 작은 라벨(eyebrow) */
+body{overflow-x:clip}
+.band{position:relative;isolation:isolate;padding:var(--s7) 0}
+.band.first{padding-top:var(--s4);padding-bottom:var(--s5)}
+.band.alt::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:50%;width:100vw;margin-left:-50vw;background:var(--bg-alt)}
+.band h2{margin:0 0 var(--s2)}
+.eyebrow{margin:0 0 var(--s2);font-size:var(--fs-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+@media (max-width:767px){.band{padding:var(--s6) 0}}
+.hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--s3) var(--s5)}
+.hero .hd{min-width:0}
+.statstrip{display:flex;flex-wrap:wrap;gap:var(--s3) var(--s5)}
+.statstrip>div{padding-left:var(--s3);border-left:3px solid var(--accent-tint)}
+.statstrip b{display:block;font-size:var(--fs-lg);font-weight:800;line-height:1.25;color:var(--accent);font-variant-numeric:tabular-nums}
+.statstrip span{font-size:var(--fs-sm);color:var(--sub)}
+@media (max-width:767px){.statstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s2);width:100%}.statstrip>div{padding-left:var(--s2)}.statstrip b{font-size:18px}.statstrip .dt{display:none}}
+.statstrip .dt{font-style:normal}
 .survlink{background:var(--acc-soft);border:1px solid var(--acc);border-radius:var(--r);padding:10px var(--s4);margin:8px 0;font-size:var(--fs-md)}
 .survlink a{color:var(--acc);font-weight:600}
 table.ov{min-width:560px}
@@ -266,8 +290,9 @@ __EXTRA__</style></head><body>
 <main class="wide">
 
 <section class="tab on" id="t-map">
-<div class="hero"><h1>어느 지역·업종이 왜 위험한가</h1>
+<div class="hero"><div class="hd"><p class="eyebrow">CLOSURE RISK MAP</p><h1>어느 지역·업종이 왜 위험한가</h1>
 <p>붉은 지역일수록 폐업 위험이 높고, 푸른 지역일수록 낮아요. 지역을 누르면 왜 그런지 이유를 볼 수 있어요.</p></div>
+<div class="statstrip" role="group" aria-label="분석 범위 요약"><div><b>__N__</b><span>분석 점포</span></div><div><b id="ss-reg">-</b><span>시군구</span></div><div><b id="ss-biz">-</b><span>업종</span></div><div><b>180일</b><span>관측 기간<i class="dt"> 2026-01-01~06-30</i></span></div></div></div>
 <div class="guide" id="guide" hidden><ol><li>지도에서 지역을 누르거나 검색해요</li><li>색(폐업 위험도)과 요인 막대로 이유를 봐요</li><li>업종 버튼으로 업종별로 비교해요</li></ol><button type="button" class="chip-b" id="guideX" aria-label="가이드 닫기">닫기 ✕</button></div>
 <div class="toolbar">
 <span class="sugwrap"><input type="text" id="ask" placeholder="예) 동탄 서양음식 / 합천 한식 / 한식 위험한 곳" aria-label="지역·업종 질문" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug"><ul class="sug" id="sug" role="listbox" hidden></ul></span>
@@ -283,20 +308,20 @@ __EXTRA__</style></head><body>
 </section>
 
 <section class="tab" id="t-area">
-<div class="hero"><h1>상권 분석</h1><p>시군구를 고르면 업종별 점포 수·실제 폐업률·폐업 위험도·영업연수·프랜차이즈 비중·BC카드 월평균 소비를 한눈에 봅니다.</p></div>
+<div class="band first"><div class="hero"><div class="hd"><p class="eyebrow">AREA PROFILE</p><h1>상권 분석</h1><p>시군구를 고르면 업종별 점포 수·실제 폐업률·폐업 위험도·영업연수·프랜차이즈 비중·BC카드 월평균 소비를 한눈에 봅니다.</p></div></div>
 <div class="ctrl"><input type="text" id="areaq" list="rlist" placeholder="시군구 검색 (예: 화성시 동탄구, 강남구, 합천군)"><datalist id="rlist"></datalist></div>
-<div id="areaout" class="card"><p class="hint">시군구를 선택하세요.</p></div>
-<h3 style="margin-top:28px">두 지역 비교</h3>
+<div id="areaout" class="card"><p class="hint">시군구를 선택하세요.</p></div></div>
+<div class="band alt"><p class="eyebrow">COMPARE</p><h2>두 지역 비교</h2>
 <div class="ctrl"><input type="text" id="cmpA" list="rlist" placeholder="지역 A (예: 서울특별시 마포구)" aria-label="비교할 지역 A"><span class="hint">vs</span><input type="text" id="cmpB" list="rlist" placeholder="지역 B (예: 서울특별시 강남구)" aria-label="비교할 지역 B"><select id="cmpBiz" aria-label="비교할 업종"></select></div>
-<div id="cmpOut" class="card"><p class="hint">두 지역을 고르면 폐업 위험도와 요인 막대를 나란히 보여 줘요.</p></div>
-<h3 style="margin-top:28px">시군구 위험·안전 Top 10 (전체 업종) <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h3>
+<div id="cmpOut" class="card"><p class="hint">두 지역을 고르면 폐업 위험도와 요인 막대를 나란히 보여 줘요.</p></div></div>
+<div class="band"><p class="eyebrow">RANKING</p><h2>시군구 위험·안전 Top 10 (전체 업종) <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h2>
 <p class="hint" style="margin:0 0 8px">점포 2,000개 이상 시군구만 순위에 넣었어요. 행을 누르면 지도에서 열려요.</p>
-<div class="cols3"><div class="card" id="rg-hi"></div><div class="card" id="rg-lo"></div></div>
-<h3 style="margin-top:28px">업종별 위험 순위 (점포 300개 이상 조합) <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h3>
+<div class="cols3"><div class="card" id="rg-hi"></div><div class="card" id="rg-lo"></div></div></div>
+<div class="band alt"><p class="eyebrow">BY INDUSTRY</p><h2>업종별 위험 순위 (점포 300개 이상 조합) <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h2>
 <div class="ctrl"><select id="rankbiz"></select></div>
-<div class="cols3"><div class="card" id="rk-hi"></div><div class="card" id="rk-lo"></div></div>
-<h3 style="margin-top:28px">소비가 많으면 버티는가? — 점포당 소비와 실제 폐업률 <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h3>
-<div class="card"><div id="scat"></div><p class="cap">점 하나 = 시군구×업종 조합(점포 100개 이상), 굵은 선 = 소비 10분위별 실제 폐업률. 소비 하위 구간의 폐업률이 가장 낮고 중·상위에서는 비슷한 수준으로 이어집니다 — 소비가 높다고 덜 폐업하지 않습니다. 업종 안 소비 순위와 폐업률의 순위상관은 전체 __RHO_ALL__, 같은 시군구 안에서는 __RHO_IN__(관계 없음)입니다.</p></div>
+<div class="cols3"><div class="card" id="rk-hi"></div><div class="card" id="rk-lo"></div></div></div>
+<div class="band"><p class="eyebrow">CONSUMPTION</p><h2>소비가 많으면 버티는가? — 점포당 소비와 실제 폐업률 <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h2>
+<div class="card"><div id="scat"></div><p class="cap">점 하나 = 시군구×업종 조합(점포 100개 이상), 굵은 선 = 소비 10분위별 실제 폐업률. 소비 하위 구간의 폐업률이 가장 낮고 중·상위에서는 비슷한 수준으로 이어집니다 — 소비가 높다고 덜 폐업하지 않습니다. 업종 안 소비 순위와 폐업률의 순위상관은 전체 __RHO_ALL__, 같은 시군구 안에서는 __RHO_IN__(관계 없음)입니다.</p></div></div>
 </section>
 
 <section class="tab" id="t-surv">__SURV__</section>
@@ -766,11 +791,22 @@ document.addEventListener('click',e=>{const a=e.target.closest('[data-see]');if(
   card.scrollIntoView({behavior:'smooth',block:'center'});
   card.querySelectorAll('.hbrow').forEach(r=>{const nm=r.querySelector('.nm');if(nm&&mp.rows.includes(nm.textContent.replace(/^[★▼]\s*/,'').trim())){r.classList.add('hl');setTimeout(()=>r.classList.remove('hl'),2600);}});});
 
+// 데스크톱에서는 지도가 첫 화면(뷰포트) 안에 들어오도록 높이를 맞춘다(모바일은 CSS)
+function fitMap(){
+  const m=$('#map'),c=$('.mapcard');if(!m||!c)return;
+  if(isMobile()){m.style.height='';return;}
+  if(!$('#t-map').classList.contains('on'))return;
+  const top=c.getBoundingClientRect().top+window.scrollY;
+  m.style.height=Math.max(440,Math.min(760,window.innerHeight-top-28))+'px';map.invalidateSize();
+}
+let fitT;window.addEventListener('resize',()=>{clearTimeout(fitT);fitT=setTimeout(fitMap,120);});
+
 // ---------- 탭 ----------
-function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===t));document.querySelectorAll('section.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));history.replaceState(null,'','#'+t);window.scrollTo(0,0);if(t==='map')setTimeout(()=>map.invalidateSize(),50);if(t==='surv')renderSurvLink();}
+function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===t));document.querySelectorAll('section.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));history.replaceState(null,'','#'+t);window.scrollTo(0,0);if(t==='map')setTimeout(()=>{fitMap();map.invalidateSize();},50);if(t==='surv')renderSurvLink();}
 document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>tab(x.dataset.t)));
 if(location.hash&&$('#t-'+location.hash.slice(1)))tab(location.hash.slice(1));
 window.addEventListener('hashchange',()=>{const k=location.hash.slice(1);if($('#t-'+k)&&!$('#t-'+k).classList.contains('on'))tab(k);});   // 같은 문서에서 #surv 등으로 바꿔도 탭이 열린다
+$('#ss-reg').textContent=D.regions.length.toLocaleString();$('#ss-biz').textContent=BIZ.length;   // 통계 스트립 값은 데이터에서 읽는다
 renderLegend();renderHome();update();
 $('#btn-nat').addEventListener('click',clearSel);$('#btn-sudo').addEventListener('click',goSudo);
 const aq=new URLSearchParams(location.search).get('area');if(aq){$('#areaq').value=aq;areaShow();}
@@ -782,8 +818,9 @@ else if(qP){$('#ask').value=qP;ask(bi>=0);}else if(bi>=0){update();renderHome();
 (function(){ // 첫 방문자용 3단계 가이드(닫으면 이 브라우저에서 다시 보이지 않는다). 링크로 들어온 경우엔 띄우지 않는다
   let seen=false;try{seen=localStorage.getItem('bc_guide_v1')==='1';}catch(e){}
   const g=$('#guide');if(!seen&&!qP){g.hidden=false;document.body.classList.add('guide-on');}
-  $('#guideX').addEventListener('click',()=>{g.hidden=true;document.body.classList.remove('guide-on');try{localStorage.setItem('bc_guide_v1','1');}catch(e){}});
+  $('#guideX').addEventListener('click',()=>{g.hidden=true;document.body.classList.remove('guide-on');fitMap();try{localStorage.setItem('bc_guide_v1','1');}catch(e){}});
 })();
+fitMap();window.addEventListener('load',fitMap);
 </script></body></html>"""
 
 html_out = (TEMPLATE.replace("__CSS__", css).replace("__EXTRA__", EXTRA_CSS).replace("__DATA__", data).replace("__SURV__", surv).replace("__LEAFLET_CSS__", Path("vendor/leaflet.css").read_text(encoding="utf-8")).replace("__LEAFLET_JS__", Path("vendor/leaflet.js").read_text(encoding="utf-8"))

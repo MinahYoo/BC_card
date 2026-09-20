@@ -38,7 +38,7 @@ def unify_terms(h):
         ("영업연수·점포 성격·프랜차이즈가 만든다", "영업연수·점포 규모·운영 특성·프랜차이즈가 만든다"),
         ("영업연수·사업장 성격·프랜차이즈가 점포 수준의 판별을 만듭니다.", "영업연수·점포 규모·운영 특성·프랜차이즈가 점포 수준의 판별을 만듭니다."),
         ("자기·이웃 지역 폐업 이력과 BC 연령 구성이", "지역 폐업 흐름과 BC카드 고객 연령대가"),
-        ("BC 성별 구성은 빼는 편이 오히려 낫습니다(주황).", "BC카드 고객 성별은 빼는 편이 오히려 낫습니다(주황)."),
+        ("BC 성별 구성은 빼는 편이 오히려 낫습니다(주황).", "BC카드 고객 성별은 빼는 편이 오히려 낫습니다."),
         ("고객 연령 구성은 “지역 유형”의 신호일 뿐", "BC카드 고객 연령대는 “지역 유형”의 신호일 뿐"),
         ("연령 구성은 시군구 간 순위에는", "연령대 구성은 시군구 간 순위에는"),
         ("남은 공간 구조는 “이웃 지역의 최근 폐업 흐름” 하나로 설명된다", "남은 공간 구조는 “지역 폐업 흐름” 하나로 설명된다"),
@@ -59,7 +59,7 @@ def unify_terms(h):
         ("모형에 더해 본 것과 결과 (M3 또는 M4 대비 미학습 그룹 순위 변화, ΔSpearman)", "모형에 더해 본 것과 결과 (기본 모형 대비, 학습에 쓰지 않은 지역·업종 조합의 순위 변화 · ΔSpearman)"),
         ("(M3L, p=0.23)", "(최종 모형, p=0.23)"),
         ("최종 모형(M3L)에서", "최종 모형에서"),
-        ("파랑 = 신뢰구간이 0을 제외.", "진한 청록 = 신뢰구간이 0을 제외."),
+        ("“어느 지역인가”를 가릅니다. 파랑 = 신뢰구간이 0을 제외.", "“어느 지역인가”를 가릅니다."),
         ("지역의 최근 폐업 흐름을 결합해야 합니다.", "지역 폐업 흐름을 결합해야 합니다."),
     ]
     for old, new in pairs:
@@ -122,7 +122,17 @@ _ROW = re.compile(
 _SVG = re.compile(r'<svg viewBox="0 0 (\d+) (\d+)" role="img" class="chart">(.*?)</svg>', re.S)
 
 
-def _hbars(m):
+KINDS = [("점포 단위 판별력 하락(ΔC-index)", "c"), ("지역 간 순위 하락(ΔSpearman, 95% CI)", "s"), ("같은 시군구 안 순위 하락(ΔSpearman, 95% CI)", "w"),
+         ("폐업률 차이를 설명하는 정도(조정 R²)", ""), ("점포당 소비 구간별 폐업률", ""), ("객단가 구간별 폐업률", ""), ("모형 단계별 Moran’s I", "")]
+_SW = lambda c, t: f'<span class="lgi"><span class="sw {c}"></span>{t}</span>'
+LEGEND = {
+    "c": _SW("pos", "★ 뚜렷한 기여(ΔC-index 0.003 초과)") + _SW("muted", "기여 미약"),
+    "s": _SW("pos", "★ 유의: 95% 신뢰구간이 0을 제외") + _SW("muted", "구간이 0을 포함(뚜렷한 차이 없음)"),
+    "w": _SW("pos", "★ 유의: 95% 신뢰구간이 0을 제외") + _SW("muted", "구간이 0을 포함") + _SW("neg", "▼ 구간이 0 미만: 빼는 편이 오히려 나음"),
+}
+
+
+def _hbars(m, idx=0):
     """build_report.hbar()가 그린 SVG를 같은 좌표 그대로 % 위치의 HTML 막대로 옮긴다(값·CI 계산을 새로 하지 않는다)."""
     W, body = int(m.group(1)), m.group(3)
     rows = _ROW.findall(body)
@@ -131,7 +141,10 @@ def _hbars(m):
     ax = re.search(r'<line x1="([\d.]+)" x2="\1" y1="6" y2="[\d.]+" class="axis"/>', body)
     pct = lambda x: max(0.0, min(100.0, (x - x0) / (x1 - x0) * 100))
     zero = pct(float(ax.group(1))) if ax else 0.0
-    out = ['<div class="hb">']
+    title, kind = KINDS[idx]
+    star = {"pos": "★ ", "neg": "▼ "} if kind else {}
+    aria = title + ": " + ", ".join(f"{re.sub('<[^>]+>', '', r[1])} {r[6]}" for r in rows)
+    out = [f'<p class="lgd">{LEGEND[kind]}</p>' if kind else "", f'<div class="hb" role="group" aria-label="{aria}">']
     for lx, lab, rx, rw, cls, whisk, val in rows:
         l, w = pct(float(rx)), float(rw) / (x1 - x0) * 100
         trk = f'<i class="zero" style="left:{zero:.2f}%"></i><i class="hbar {cls}" style="left:{l:.2f}%;width:{w:.2f}%"></i>'
@@ -139,14 +152,15 @@ def _hbars(m):
         if xs:                                            # 첫 선 = 가로 신뢰구간, 나머지 둘 = 양 끝 마디
             lo, hi = pct(xs[0][0]), pct(xs[0][1])
             trk += f'<i class="wk" style="left:{lo:.2f}%;width:{hi - lo:.2f}%"></i><i class="wkc" style="left:{lo:.2f}%"></i><i class="wkc" style="left:{hi:.2f}%"></i>'
-        out.append(f'<div class="hbrow" data-cls="{cls}"><div class="nm">{lab}</div><div class="trk">{trk}</div><div class="val">{val}</div></div>')
+        out.append(f'<div class="hbrow" data-cls="{cls}"><div class="nm">{star.get(cls, "")}{lab}</div><div class="trk">{trk}</div><div class="val">{val}</div></div>')
     out.append("</div>")
     return "".join(out)
 
 
 def bars_to_html(h):
-    h, n = _SVG.subn(_hbars, h)
-    assert n == 7, f"막대 차트 수가 달라짐: {n}"
+    it = iter(range(len(KINDS)))
+    h, n = _SVG.subn(lambda m: _hbars(m, next(it)), h)
+    assert n == len(KINDS), f"막대 차트 수가 달라짐: {n}"
     return h
 
 
@@ -227,14 +241,13 @@ def step2(h):
     h = _rep(h, "점포 단위 판별력 하락 (ΔC-index)</h3>", f"점포 단위 판별력 하락 ({dc})</h3>" + how("막대가 길수록, 그 요인 묶음을 빼면 점포 단위 예측(폐업할 점포 가려내기)이 많이 나빠져요."))
     h = _rep(h, "지역 간 순위 하락 (ΔSpearman, 95% CI)</h3>", f"지역 간 순위 하락 ({ds}, 95% CI)</h3>" + how("막대가 길수록, 그 요인 묶음을 빼면 ‘지역끼리의 위험 순위’가 많이 틀어져요. 막대 위 가로선은 95% 신뢰구간이에요."))
     h = _rep(h, "같은 시군구 안 순위 하락 (ΔSpearman, 95% CI)</h3>", "같은 시군구 안 순위 하락 (ΔSpearman, 95% CI)</h3>" + how("같은 시군구 안에서 지역·업종 조합의 순위를 가르는 데 그 요인 묶음이 얼마나 필요한지예요. 왼쪽(음수)이면 빼는 편이 오히려 나은 요인이에요."))
-    h = _rep(h, '<div class="card"><div class="hb"><div class="hbrow" data-cls="muted"><div class="nm">업종만',
-             '<div class="card"><h3 style="margin-top:0">폐업률 차이를 설명하는 정도 (조정 R²)</h3>' + how("막대가 길수록 그 정보(업종 또는 시군구)만으로 지역·업종 조합 간 폐업률 차이를 잘 설명해요. 이론상 상한은 약 0.72예요.") + '<div class="hb"><div class="hbrow" data-cls="muted"><div class="nm">업종만')
-    h = _rep(h, '<div class="card"><div class="hb"><div class="hbrow" data-cls="muted"><div class="nm">① 모형 없음',
-             '<div class="card"><h3 style="margin-top:0">이웃끼리 닮은 패턴이 남은 정도 (Moran’s I)</h3>' + how("막대가 짧을수록(0에 가까울수록) 모형이 놓친 ‘이웃끼리 닮은 패턴’이 적어요.") + '<div class="hb"><div class="hbrow" data-cls="muted"><div class="nm">① 모형 없음')
+    for aria_start, title, hw in [("폐업률 차이를 설명하는 정도", "폐업률 차이를 설명하는 정도 (조정 R²)", how("막대가 길수록 그 정보(업종 또는 시군구)만으로 지역·업종 조합 간 폐업률 차이를 잘 설명해요. 이론상 상한은 약 0.72예요.")),
+                                  ("모형 단계별 Moran’s I", "이웃끼리 닮은 패턴이 남은 정도 (Moran’s I)", how("막대가 짧을수록(0에 가까울수록) 모형이 놓친 ‘이웃끼리 닮은 패턴’이 적어요."))]:
+        h = _rep(h, f'<div class="card"><div class="hb" role="group" aria-label="{aria_start}', f'<div class="card"><h3 style="margin-top:0">{title}</h3>{hw}<div class="hb" role="group" aria-label="{aria_start}')
     h, n = re.subn(r'(<h3 style="margin-top:0">(?:점포당 소비|객단가)\(1월.*?</h3>)', lambda m: m.group(1) + how("막대는 0%부터 시작해요. 길수록 그 구간의 폐업률이 높아요."), h)
     assert n == 2
     h = _after(h, "순위 변화 · ΔSpearman)</h3>", how("각 칸은 변수를 더했을 때 순위 예측이 얼마나 좋아졌는지(ΔSpearman)와 [95% 신뢰구간]이에요. 구간이 0을 포함하면 개선이 확실하지 않다는 뜻이에요."))
-    h = _after(h, "<h3>가장 위험한 8개 지역·업종 조합</h3>", how("숫자는 그 요인이 평균 점포 대비 폐업 위험을 몇 배로 만드는지예요(×1.0 = 평균). 붉을수록 위험을 높이고 푸를수록 낮춰요."))
+    h = _after(h, "<h3>가장 위험한 8개 지역·업종 조합</h3>", how("숫자는 그 요인이 평균 점포 대비 폐업 위험을 몇 배로 만드는지예요(×1.0 = 평균). 붉을수록 위험을 높이고 푸를수록 낮춰요. 회색은 ±3% 이내라 영향이 작아요."))
     h, n = re.subn(r'(<h3 style="margin-top:0">예상보다 폐업이 (?:많은|적은) 군집.*?</h3>)', lambda m: m.group(1) + how("관측 = 실제 폐업 건수, 예상 = 모형이 예측한 건수예요."), h)
     assert n == 2
 
@@ -244,12 +257,12 @@ def step2(h):
     cap = m.group(1)
     h = h.replace(m.group(0), "")
     h = _rep(h, "열은 뺐습니다.</p>", f'열은 뺐습니다.</p><div class="note"><b>해석.</b> {cap}</div>')
-    h = _rep(h, "<h3>가장 안전한 8개 지역·업종 조합</h3>", '<div class="note"><b>주의: 연관이며 인과가 아니에요.</b> 안전한 조합에 지방 한식계열이 많다고 해서 “지방 한식은 무조건 안전하다”는 뜻은 아니에요. 평균 점포와 비교한 통계적 연관일 뿐, 원인이나 정책 효과가 아니에요.</div><h3>가장 안전한 8개 지역·업종 조합</h3>' + how("위 표와 같은 방식으로 읽어요. 푸를수록 그 요인이 위험을 낮춰요."))
+    h = _rep(h, "<h3>가장 안전한 8개 지역·업종 조합</h3>", '<div class="note"><b>주의: 연관이며 인과가 아니에요.</b> 안전한 조합에 지방 한식계열이 많다고 해서 “지방 한식은 무조건 안전하다”는 뜻은 아니에요. 평균 점포와 비교한 통계적 연관일 뿐, 원인이나 정책 효과가 아니에요.</div><h3>가장 안전한 8개 지역·업종 조합</h3>' + how("위 표와 같은 방식으로 읽어요. 푸를수록 그 요인이 위험을 낮추고, 회색(±3% 이내)은 영향이 작아요."))
     h = _rep(h, "점포 300개 이상인 지역·업종 조합만 표시하며", "점포 300개 이상인 지역·업종 조합만 표시하며" + tip("", TIP_MIN))
     # 성별 주석(모순처럼 보이는 지점)
-    h = _rep(h, "BC카드 고객 성별은 빼는 편이 오히려 낫습니다(주황).</p></div>",
-             'BC카드 고객 성별은 빼는 편이 오히려 낫습니다(주황).</p>'
-             '<div class="note" style="margin:10px 0 0"><b>지도의 결과 카드에는 왜 “BC카드 고객 성별” 막대가 나오나요?</b> 최종 모형에는 성별 구성이 들어 있어 값이 표시돼요. 다만 같은 시군구 안에서 조합을 가르는 데는 빼는 편이 오히려 나았어요(위 주황 막대). 그래서 참고용으로 봐 주세요.</div></div>')
+    h = _rep(h, "BC카드 고객 성별은 빼는 편이 오히려 낫습니다.</p></div>",
+             'BC카드 고객 성별은 빼는 편이 오히려 낫습니다.</p>'
+             '<div class="note" style="margin:10px 0 0"><b>지도의 결과 카드에는 왜 “BC카드 고객 성별” 막대가 나오나요?</b> 최종 모형에는 성별 구성이 들어 있어 값이 표시돼요. 다만 같은 시군구 안에서 조합을 가르는 데는 빼는 편이 오히려 나았어요(위 ▼ 표시 막대). 그래서 참고용으로 봐 주세요.</div></div>')
     h = _rep(h, "3장 표에 그대로 실었습니다", "3장의 통계 상세 표에 그대로 실었습니다")
 
     secs = _split_sections(h)
@@ -288,5 +301,36 @@ CODE_TABLE = (
     '</tbody></table></div></div></details>')
 
 
+COLTIPS = {
+    "영업연수": "문을 연 지 몇 년 됐는지예요. 오래 영업한 점포가 많을수록 위험이 낮게 나와요.",
+    "프랜차이즈": "프랜차이즈(가맹) 점포의 비중이에요. 이 모형에서는 비중이 높은 곳이 위험이 낮게 나와요.",
+    "점포 규모·운영 특성": "점포 규모, 다중이용시설 여부처럼 점포 자체의 특성이에요.",
+    "지역 폐업 흐름": "이 시군구와 이웃 시군구에서 2026-01-01 기준 직전 1년 동안 폐업한 점포의 비율이에요. 높을수록 위험이 높아요.",
+    "BC카드 고객 성별": "BC카드 결제 고객의 남성·여성·법인 비중이에요. 최종 모형에는 들어 있지만 같은 시군구 안에서는 빼는 편이 예측이 조금 더 나았어요. 참고용으로 봐 주세요.",
+    "BC카드 고객 연령대": "BC카드 결제 고객의 연령대 구성이에요. 같은 시군구 안에서는 위험을 가르지 못하고 어떤 유형의 지역인지 알려 주는 신호일 뿐이에요.",
+    "업종": "업종마다 평균적으로 폐업이 잦은 정도가 달라요. 그 업종 자체가 가진 기본 위험이에요.",
+    "폐업 위험도(배수)": "평균 점포를 ×1.0으로 놓고 비교한 폐업 위험도예요. 오른쪽 요인 배수들(표에서 뺀 입지·직전 폐업률 요인 포함)을 곱한 값이에요. 연관일 뿐 원인은 아니에요.",
+}
+
+
+def _qbtn(t):
+    t = t.replace('"', "'")
+    return f'<button type="button" class="q" data-tip="{t}" aria-label="설명: {t}">?</button>'
+
+
+def step3(h):
+    # 요인 배수 셀: ±3%(0.97~1.03)는 회색, 나머지는 원문 색(1.0 중심 발산) + ▲/▼ 표기
+    def cell(m):
+        v = float(m.group(2))
+        if 0.97 <= v <= 1.03:
+            return f'<td class="chip flat">{m.group(2)}</td>'
+        return f'<td class="chip" style="{m.group(1)}"><span class="ar">{"▲" if v >= 1 else "▼"}</span>{m.group(2)}</td>'
+    h, n = re.subn(r'<td class="chip" style="([^"]*)">([\d.]+)</td>', cell, h)
+    assert n == 112, f"표 셀 수가 달라짐: {n}"
+    for col, text in COLTIPS.items():
+        h = _rep(h, f"<th>{col}</th>", f'<th class="hasq">{col}{_qbtn(text)}</th>', 2)
+    return h
+
+
 def transform(h):
-    return step2(transform_step1(h))
+    return step3(step2(transform_step1(h)))

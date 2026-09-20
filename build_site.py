@@ -35,7 +35,7 @@ button,select,input{font-family:inherit}
 .brand{font-weight:800;font-size:16px} .brand span{color:var(--sub);font-weight:500;font-size:var(--fs-sm);margin-left:var(--s2)}
 nav{display:flex;gap:var(--s1);flex-wrap:wrap}
 nav button{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:5px 14px 4px;border-radius:14px;font-size:var(--fs-sm);line-height:1.3;cursor:pointer;display:flex;flex-direction:column;align-items:center}
-nav button small{font-size:12.5px;font-weight:400;color:var(--sub)} nav button[aria-selected="true"] small{color:inherit;opacity:.92}
+nav button small{font-size:var(--fs-sm);font-weight:400;color:var(--sub)}@media (max-width:1000px){nav button small{display:none}} nav button[aria-selected="true"] small{color:inherit;opacity:.92}
 nav button:hover{border-color:var(--acc);color:var(--acc)}
 nav button[aria-selected="true"],nav button[aria-selected="true"]:hover{background:var(--acc);border-color:var(--acc);color:var(--acc-fg)}
 main.wide{max-width:1180px;padding-bottom:80px} section.tab{display:none;padding-top:var(--s4)} section.tab.on{display:block}
@@ -54,14 +54,14 @@ input[type=text]{min-width:min(260px,100%);flex:1}
 .grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:var(--s4);align-items:start}
 .mapcard{position:sticky;top:calc(var(--head-h) + 12px);padding:6px;isolation:isolate}
 #map{width:100%;height:clamp(440px,calc(100vh - 300px),760px);border-radius:8px;z-index:0}
-@media (max-width:767px){.grid2{grid-template-columns:1fr}.mapcard{position:static}#map{height:min(62vh,520px);min-height:340px}.brand span{display:none}.top{position:static}.top .in{padding:var(--s2) var(--s4)}nav button{padding:6px 10px}nav button small{display:none}.maplegend{width:156px;font-size:12px;padding:5px 8px 4px}.maplegend .lg-t{font-size:11.5px;margin-bottom:3px}.maplegend .lg-d{display:none}}
+@media (max-width:767px){.grid2{grid-template-columns:1fr}.mapcard{position:static}#map{height:min(62vh,520px);min-height:340px}.brand span{display:none}.top{position:static}.top .in{padding:var(--s2) var(--s4)}nav button{padding:6px 10px}nav button small{display:none}.maplegend{width:184px;font-size:13px;padding:5px 8px 4px}.maplegend .lg-ticks{font-size:13px}.maplegend .lg-t{font-size:13px;margin-bottom:3px}.maplegend .lg-r.lg-d{display:none}.maplegend .lg-d{display:none}}
 .leaflet-container{font:inherit;background:var(--card)} .leaflet-tile-pane .tiles-osm{filter:grayscale(1) contrast(.88) brightness(1.08)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane .tiles-osm{filter:grayscale(1) invert(1) contrast(.85) brightness(.85)}}
 .leaflet-tooltip{font-size:13px;line-height:1.4}
-.maplegend{background:color-mix(in srgb,var(--card) 93%,transparent);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 10px 8px;font-size:12.5px;line-height:1.35;box-shadow:0 1px 5px rgba(0,0,0,.18);width:224px}
+.maplegend{background:color-mix(in srgb,var(--card) 93%,transparent);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 10px 8px;font-size:var(--fs-sm);line-height:1.35;box-shadow:0 1px 5px rgba(0,0,0,.18);width:258px}
 .maplegend .lg-t{font-weight:700;margin-bottom:5px}
 .maplegend .lg-bar{height:10px;border-radius:5px;background:linear-gradient(90deg,rgb(45,110,190),rgb(232,230,222),rgb(214,69,65))}
-.maplegend .lg-ticks{position:relative;height:17px;margin-top:2px;color:var(--sub);font-size:12px}
+.maplegend .lg-ticks{position:relative;height:20px;margin-top:2px;color:var(--sub);font-size:var(--fs-sm)}
 .maplegend .lg-ticks span{position:absolute;top:3px;white-space:nowrap} .maplegend .lg-ticks i{position:absolute;top:-1px;width:1px;height:4px;background:var(--sub)}
 .maplegend .lg-r{display:flex;align-items:center;gap:6px;color:var(--sub);margin-top:3px}
 .maplegend .dot{display:inline-block;border-radius:50%;background:var(--flat);border:1px solid rgba(0,0,0,.4);flex:none}
@@ -78,7 +78,7 @@ input[type=text]{min-width:min(260px,100%);flex:1}
 .big span{color:var(--sub);font-size:var(--fs-sm)}
 .t-hi{color:var(--hi-text)}.t-lo{color:var(--lo-text)} .big .delta{font-weight:700;font-size:var(--fs-md)}
 .hasq{position:relative}
-.q{width:18px;height:18px;border-radius:50%;border:1px solid var(--sub);background:transparent;color:var(--sub);font-size:12px;line-height:1;padding:0;margin-left:4px;cursor:help;flex:none;vertical-align:middle}
+.q{width:20px;height:20px;border-radius:50%;border:1px solid var(--sub);background:transparent;color:var(--sub);font-size:var(--fs-sm);line-height:1;padding:0;margin-left:4px;cursor:help;flex:none;vertical-align:middle}
 .q:hover,.q:focus-visible,.q.open{border-color:var(--acc);color:var(--acc)}
 .q::after{content:attr(data-tip);display:none;position:absolute;z-index:30;left:0;top:calc(100% + 4px);width:min(290px,78vw);padding:8px 10px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:var(--fs-sm);font-weight:400;line-height:1.5;text-align:left;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .q:hover::after,.q:focus-visible::after,.q.open::after{display:block}
@@ -138,6 +138,20 @@ details.stat[open]>summary{border-bottom:1px solid var(--line)}
 .imp h4{margin:0 0 8px;font-size:16px;line-height:1.4}
 .imp dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:var(--fs-sm)}
 .imp dt{font-weight:700;color:var(--acc);white-space:nowrap}.imp dd{margin:0}
+.lgd{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:var(--fs-sm);color:var(--sub);margin:0 0 6px}.lgd .lgi{white-space:nowrap}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+.sw.pos{background:var(--acc)}.sw.muted{background:var(--flat)}.sw.neg{background:#b45309}
+table.grp{min-width:780px}
+table.grp th{white-space:normal;vertical-align:bottom;font-size:var(--fs-sm);min-width:74px}
+table.grp th:first-child,table.grp td.gname{position:sticky;left:0;z-index:2;background:var(--card);box-shadow:1px 0 0 var(--line)}
+table.grp td.chip{font-size:var(--fs-sm)}
+table.grp td.chip .ar{margin-right:2px}
+table.grp td.chip.flat{background:rgba(125,134,150,.16);color:var(--sub)}
+#t-surv .sub{font-size:var(--fs-sm)}
+th{font-size:var(--fs-sm)}
+.finding .n{color:var(--acc-fg)}
+@media (max-width:767px){table.grp{min-width:700px}table.grp .gname{min-width:150px}}
+#scat{overflow-x:auto}.scat{min-width:760px}
 .hb{margin:6px 0}
 .hbrow{display:grid;grid-template-columns:minmax(132px,34%) minmax(0,1fr) 78px;gap:var(--s2);align-items:center;margin:9px 0;font-size:var(--fs-sm)}
 .hbrow .nm{line-height:1.3}.hbrow .val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -153,7 +167,7 @@ h2 .q,h3 .q,h4 .q{vertical-align:middle}
 .rk{display:grid;grid-template-columns:24px minmax(0,1fr) auto;column-gap:var(--s2);align-items:baseline;text-align:left;width:100%;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:7px 10px;font-size:var(--fs-sm);cursor:pointer}
 .rk:hover{border-color:var(--acc);background:var(--acc-soft)}
 .rk .rn{color:var(--sub);font-weight:700}.rk .rt{font-weight:600}.rk .rv{font-weight:700}.rk .rs{grid-column:2/4;color:var(--sub)}
-.tag{display:inline-block;padding:1px 9px;border-radius:999px;font-size:13px;background:var(--line);color:var(--fg);margin:0 2px}
+.tag{display:inline-block;padding:1px 9px;border-radius:999px;font-size:var(--fs-sm);background:var(--line);color:var(--fg);margin:0 2px}
 .tag.hi{background:var(--hi-soft);color:var(--hi-text)} .tag.lo{background:var(--lo-soft);color:var(--lo-text)}
 .why{margin:6px 0 4px} .why p{margin:6px 0;font-size:var(--fs-md)}
 .blk{border-top:1px solid var(--line);margin-top:14px;padding-top:var(--s3)} .blk h4{margin:0 0 6px;font-size:var(--fs-sm);color:var(--sub);font-weight:600}
@@ -167,7 +181,7 @@ h2 .q,h3 .q,h4 .q{vertical-align:middle}
 .tbl td.b1{min-width:120px} .mb{display:inline-block;height:9px;border-radius:3px;vertical-align:middle;margin-right:6px}
 .kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
 .kp div{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:10px var(--s3)} .kp b{display:block;font-size:20px} .kp span{font-size:var(--fs-sm);color:var(--sub)}
-.scat circle{opacity:.75} .scat text{font-size:11px;fill:var(--sub)}
+.scat circle{opacity:.5} .scat text{font-size:13px;fill:var(--sub)}
 .cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
 .legend2{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:var(--fs-sm);color:var(--sub);margin:var(--s2) 4px 2px}.legend2 span{white-space:nowrap}
 .cap{font-size:var(--fs-sm)}
@@ -201,7 +215,7 @@ __EXTRA__</style></head><body>
 <div class="chips" id="bizbar"></div>
 <div class="hint" id="askhelp" style="margin:0 0 var(--s3)">지역·업종·위험/안전을 조합해 검색해 보세요. 예: <button class="chip-b" data-q="동탄 서양음식">동탄 서양음식</button> <button class="chip-b" data-q="합천 한식">합천 한식</button> <button class="chip-b" data-q="강남구">강남구</button> <button class="chip-b" data-q="한식 위험한 곳">한식 위험한 곳</button> <button class="chip-b" data-q="경남 한식 안전한 곳">경남 한식 안전한 곳</button></div>
 <div class="grid2">
-<div class="card mapcard"><div id="map" role="region" aria-label="시군구 버블 지도"></div><div class="hint only-m" style="margin:6px 4px 2px">버블 크기 = 점포 수 · 점선 회색 = 표본 30개 미만(업종 선택 시)</div><div class="hint" id="tilenote" style="margin:2px 4px 0;color:var(--hi-text)"></div></div>
+<div class="card mapcard"><div id="map" role="region" aria-label="시군구 버블 지도. 붉을수록 폐업 위험이 높고 푸를수록 낮아요. 같은 정보를 오른쪽 순위 카드와 검색으로도 볼 수 있어요."></div><div class="hint only-m" style="margin:6px 4px 2px">버블 크기 = 점포 수 · 점선 회색 = 표본 30개 미만(업종 선택 시)</div><div class="hint" id="tilenote" style="margin:2px 4px 0;color:var(--hi-text)"></div></div>
 <div class="card panel" id="panel"></div>
 </div>
 </section>
@@ -378,7 +392,8 @@ function whyChart(x,order){   // order: 요인 key 배열(두 지역을 같은 �
   const rows=f.map(d=>{const l=Math.log(d.m),flat=d.m>=0.97&&d.m<=1.03,up=l>=0,w=Math.min(Math.abs(l)/mx,1)*50;   // ±3% 이내는 회색
     const cls=flat?'flat':(up?'hi':'lo');
     return '<div class="fxrow'+(flat?' isflat':'')+'"><div class="nm hasq">'+d.label+qtip(d.tip)+'</div><div class="trk"><i class="fbar '+cls+(d.key==='age'?' soft':'')+'" style="'+(up?'left':'right')+':50%;width:'+w.toFixed(1)+'%"></i></div><div class="val '+(flat?'t-flat':(up?'t-hi':'t-lo'))+'">'+(flat?'':(up?'▲ ':'▼ '))+'×'+d.m.toFixed(2)+'</div></div>';}).join('');
-  return '<div class="fx">'+rows+'<div class="fxrow fxaxis"><div></div><div class="ax"><span>◀ ×0.63</span><span>×1.0</span><span>×1.6 ▶</span></div><div></div></div></div>';
+  const ar='요인별 배수: '+f.map(d=>d.label+' ×'+d.m.toFixed(2)).join(', ');
+  return '<div class="fx" role="group" aria-label="'+ar+'">'+rows+'<div class="fxrow fxaxis"><div></div><div class="ax"><span>◀ ×0.63</span><span>×1.0</span><span>×1.6 ▶</span></div><div></div></div></div>';
 }
 function barsMini(arr,labels,fmt){
   const h=15,g=4,lw=46,Wd=200;let s='<svg viewBox="0 0 '+Wd+' '+(arr.length*(h+g))+'" class="mini">';
@@ -589,13 +604,14 @@ RB.addEventListener('change',rank);rank();
   const Wd=760,Ht=340,L=52,B=34,T=10,Rr=14,mxy=0.12;
   const X=v=>L+v*(Wd-L-Rr),Y=v=>Ht-B-Math.min(v,mxy)/mxy*(Ht-B-T);
   const colors=['#1f5eff','#c2410c','#2a9d8f','#9b5de5','#e9a800','#e63946','#6b7280'];
-  let s='<svg viewBox="0 0 '+Wd+' '+Ht+'" class="chart scat"><line x1="'+L+'" x2="'+(Wd-Rr)+'" y1="'+Y(NAT.rate)+'" y2="'+Y(NAT.rate)+'" class="axis"/><text x="'+(L+4)+'" y="'+(Y(NAT.rate)-5)+'">전국 평균 '+pct(NAT.rate)+'</text>';
+  let s='<svg viewBox="0 0 '+Wd+' '+Ht+'" class="chart scat" role="img" aria-label="산점도: 가로는 업종 안에서의 점포당 BC 소비 순위(백분위), 세로는 실제 폐업률(180일, %). 소비 순위가 높다고 폐업률이 낮아지지 않는 경향이며, 굵은 선은 소비 10분위별 실제 폐업률이에요."><line x1="'+L+'" x2="'+(Wd-Rr)+'" y1="'+Y(NAT.rate)+'" y2="'+Y(NAT.rate)+'" class="axis"/><text x="'+(L+4)+'" y="'+(Y(NAT.rate)-5)+'">전국 평균 '+pct(NAT.rate)+'</text>';
   [0,0.03,0.06,0.09,0.12].forEach(v=>{s+='<text x="'+(L-6)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+pct(v,0)+'</text>';});
-  [0,0.25,0.5,0.75,1].forEach(v=>{s+='<text x="'+X(v)+'" y="'+(Ht-16)+'" text-anchor="middle">'+Math.round(v*100)+'%</text>';});
-  gs.forEach(g=>{s+='<circle cx="'+X(pctl[GI.get(g.r*10+g.b)]).toFixed(1)+'" cy="'+Y(g.rate).toFixed(1)+'" r="3" fill="'+colors[g.b]+'"><title>'+D.regions[g.r].name+' '+BIZ[g.b]+' · 폐업률 '+pct(g.rate)+'</title></circle>';});
+  [0,0.25,0.5,0.75,1].forEach(v=>{s+='<text x="'+X(v)+'" y="'+(Ht-16)+'" text-anchor="middle">'+Math.round(v*100)+'</text>';});
+  s+='<text transform="rotate(-90)" x="'+(-(T+(Ht-B-T)/2))+'" y="12" text-anchor="middle">실제 폐업률 (180일, %)</text>';
+  gs.forEach(g=>{s+='<circle cx="'+X(pctl[GI.get(g.r*10+g.b)]).toFixed(1)+'" cy="'+Y(g.rate).toFixed(1)+'" r="3" fill="'+colors[g.b]+'"><title>'+rname(g.r)+' '+BIZ[g.b]+' · 점포 '+g.n.toLocaleString()+'개 · 폐업률 '+pct(g.rate)+'</title></circle>';});
   const bins=[];for(let k=0;k<10;k++){const m=gs.filter(g=>{const q=pctl[GI.get(g.r*10+g.b)];return q>k/10&&q<=(k+1)/10;});if(m.length){const n=m.reduce((a,c)=>a+c.n,0);bins.push([X((k+.5)/10),Y(m.reduce((a,c)=>a+c.ev,0)/n)]);}}
   s+='<polyline fill="none" stroke="var(--fg)" stroke-width="2.4" points="'+bins.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'"/>';
-  s+='<text x="'+(L+(Wd-L-Rr)/2)+'" y="'+(Ht-2)+'" text-anchor="middle">업종 안에서의 점포당 BC 소비 순위(백분위) →</text></svg><div class="legend2">'+BIZ.map((n,i)=>'<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+colors[i]+';margin-right:4px"></span>'+n+'</span>').join('')+'<span><b style="border-top:2.4px solid var(--fg);display:inline-block;width:18px;vertical-align:middle"></b> 10분위별 실제 폐업률(점포 수 가중)</span></div>';
+  s+='<text x="'+(L+(Wd-L-Rr)/2)+'" y="'+(Ht-2)+'" text-anchor="middle">업종 안에서의 점포당 BC 소비 순위 (백분위, 오른쪽일수록 소비가 많음) →</text></svg><div class="legend2">'+BIZ.map((n,i)=>'<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+colors[i]+';margin-right:4px"></span>'+n+'</span>').join('')+'<span><b style="border-top:2.4px solid var(--fg);display:inline-block;width:18px;vertical-align:middle"></b> 10분위별 실제 폐업률(점포 수 가중)</span></div>';
   $('#scat').innerHTML=s;
 })();
 

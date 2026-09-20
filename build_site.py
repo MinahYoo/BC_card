@@ -241,8 +241,6 @@ th{font-size:var(--fs-sm)}
 .finding .n{color:var(--acc-fg)}
 @media (max-width:767px){table.grp{min-width:700px}table.grp .gname{min-width:150px}}
 #scat{overflow-x:auto}.scat{min-width:760px}
-.sitefoot{border-top:1px solid var(--line);margin-top:24px;padding:20px var(--s4) 40px;color:var(--sub);font-size:var(--fs-sm)}
-.sitefoot .in{max-width:1180px;margin:0 auto}.sitefoot ul{margin:6px 0 0;padding-left:20px}.sitefoot li{margin:3px 0}.sitefoot a{color:var(--acc)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:var(--fs-sm);opacity:0;pointer-events:none;transition:opacity .2s;z-index:100}
 .toast.on{opacity:1}
 .skel{display:flex;flex-direction:column;gap:12px;padding:6px 0}
@@ -339,11 +337,6 @@ __EXTRA__</style></head><body>
 
 <section class="tab" id="t-surv">__SURV__</section>
 </main>
-<footer class="sitefoot"><div class="in"><b>데이터와 고지</b>
-<ul><li><b>데이터 출처:</b> LOCALDATA 인허가 4종(일반음식점·휴게음식점·제과점영업·대규모점포)의 폐업일자, 공모전 제공 BC카드 ABP 데이터(시군구 × 업종 월 집계).</li>
-<li><b>분석 기간:</b> 2026-01-01에 영업 중이던 점포를 2026-06-30까지 추적했어요(180일). BC카드 소비는 2026-01~06 자료예요.</li>
-<li><b>고지:</b> 화면의 모든 수치는 통계적 연관이며 인과나 정책 효과가 아니에요. 표본이 적은 곳은 우연 변동이 커요.</li>
-<li><b>문의·소스:</b> <a href="https://github.com/ahnseo0000/BC_card" target="_blank" rel="noopener">GitHub 저장소</a>에 이슈로 남겨 주세요.</li></ul></div></footer>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <noscript><p style="padding:16px">이 지도는 JavaScript가 필요해요. 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
 

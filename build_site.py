@@ -351,6 +351,8 @@ const qs=new URLSearchParams(location.search).get('q');if(qs){$('#ask').value=qs
 html_out = (TEMPLATE.replace("__CSS__", css).replace("__EXTRA__", EXTRA_CSS).replace("__DATA__", data).replace("__SURV__", surv)
             .replace("__N__", f"{nat['n']:,}").replace("__EV__", f"{nat['events']:,}").replace("__RATE__", f"{nat['rate'] * 100:.2f}")
             .replace("__RHO_ALL__", f"{R.rho_all:+.2f}").replace("__RHO_IN__", f"{R.rho_in:+.2f}"))
-Path("site").mkdir(exist_ok=True)
-Path("site/index.html").write_text(html_out, encoding="utf-8")
-print(f"site/index.html 작성 ({len(html_out) / 1024:.0f} KB)")
+for d in ("site", "docs"):             # site/는 로컬 확인용, docs/는 GitHub Pages(main 브랜치 /docs)용 — 내용 동일
+    Path(d).mkdir(exist_ok=True)
+    Path(d, "index.html").write_text(html_out, encoding="utf-8")
+Path("docs/.nojekyll").write_text("", encoding="utf-8")
+print(f"site/index.html, docs/index.html 작성 ({len(html_out) / 1024:.0f} KB)")

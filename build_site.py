@@ -55,7 +55,7 @@ button,select,input{font-family:inherit}
 .top .in{max-width:1180px;margin:0 auto;padding:10px var(--s4);display:flex;flex-wrap:wrap;gap:var(--s2) 18px;align-items:center;justify-content:space-between}
 .brand{font-weight:800;font-size:var(--fs-md)} .brand span{color:var(--sub);font-weight:500;font-size:var(--fs-sm);margin-left:var(--s2)}
 nav{display:flex;gap:var(--s1);flex-wrap:wrap}
-nav button{border:1px solid transparent;background:transparent;color:var(--fg);padding:5px 14px 4px;border-radius:var(--r-md);font-size:var(--fs-sm);line-height:1.3;cursor:pointer;display:flex;flex-direction:column;align-items:center}
+nav button{justify-content:center;border:1px solid transparent;background:transparent;color:var(--fg);padding:5px 14px 4px;border-radius:var(--r-md);font-size:var(--fs-sm);line-height:1.3;cursor:pointer;display:flex;flex-direction:column;align-items:center}
 nav button small{font-size:var(--fs-xs);font-weight:400;color:var(--sub)}@media (max-width:1000px){nav button small{display:none}} nav button[aria-selected="true"] small{color:inherit;opacity:.92}
 nav button:hover{background:var(--accent-tint);color:var(--accent-strong)}
 nav button[aria-selected="true"],nav button[aria-selected="true"]:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
@@ -213,6 +213,7 @@ table.ov td.ovc{text-align:center;font-variant-numeric:tabular-nums;font-size:va
 .finding>div:last-child{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--s1) var(--s5);align-items:center}
 .finding .stat-number{grid-column:2;grid-row:1/3;align-items:flex-end;text-align:right;max-width:340px;margin:0}
 .finding details.tech{grid-column:1;grid-row:2}
+@media (min-width:1000px){.finding .stat-number{max-width:none}.finding .stat-number .lbl{white-space:nowrap}}   /* 넓은 화면에서는 핵심 숫자 설명을 한 줄로 */
 @media (max-width:767px){.finding>div:last-child{grid-template-columns:1fr}.finding .stat-number{grid-column:1;grid-row:auto;align-items:flex-start;text-align:left;max-width:none;margin:var(--s1) 0}.finding details.tech{grid-row:auto}.stat-number .num{font-size:var(--fs-xl)}}
 details.tech{margin-top:2px}details.tech>summary{cursor:pointer;color:var(--acc);font-size:var(--fs-sm);font-weight:600}
 details.tech>p{margin:6px 0 0;color:var(--sub);font-size:var(--fs-sm)}
@@ -296,7 +297,7 @@ __EXTRA__</style></head><body>
 <div class="brand">상권 생존 지도<span>BC카드 소비데이터 공모전</span></div>
 <nav id="nav" role="tablist">
 <button data-t="map" aria-selected="true">지도 탐색<small>위험 지도로 보기</small></button><button data-t="area" aria-selected="false">상권 분석<small>업종·지역 비교</small></button>
-<button data-t="surv" aria-selected="false">모형 근거<small>왜 이렇게 예측했나</small></button></nav>
+<button data-t="surv" aria-selected="false">모형 근거</button></nav>
 </div></div>
 <main class="wide">
 

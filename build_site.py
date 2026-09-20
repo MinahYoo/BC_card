@@ -35,9 +35,9 @@ input[type=text]{min-width:min(260px,100%);flex:1}
 .grid2{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
 @media (max-width:920px){.grid2{grid-template-columns:1fr}}
 .mapcard{position:relative;padding:8px;isolation:isolate} #map{width:100%;height:min(78vh,700px);min-height:440px;border-radius:8px;z-index:0}
-.leaflet-control-attribution{font-size:10px;padding:0 5px;color:var(--sub);background:color-mix(in srgb,var(--card) 72%,transparent)} .leaflet-control-attribution a{color:inherit} .leaflet-control-layers{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;box-shadow:none;font-size:12.5px} .leaflet-control-layers-toggle{border-radius:8px}
-.leaflet-container{font:inherit;background:var(--card)} .tile-gray{filter:grayscale(1) contrast(.88) brightness(1.08)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tile-gray{filter:grayscale(1) invert(1) contrast(.85) brightness(.85)}} .leaflet-tooltip{font-size:12.5px;line-height:1.4}
+.leaflet-control-attribution{font-size:10px;padding:0 5px;color:var(--sub);background:color-mix(in srgb,var(--card) 72%,transparent)} .leaflet-control-attribution a{color:inherit}
+.leaflet-container{font:inherit;background:var(--card)} .leaflet-tile-pane{filter:grayscale(1) contrast(.88) brightness(1.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:grayscale(1) invert(1) contrast(.85) brightness(.85)}} .leaflet-tooltip{font-size:12.5px;line-height:1.4}
 .legend{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--sub);margin:8px 4px 2px}
 .legend .bar{height:10px;width:190px;border-radius:5px;background:linear-gradient(90deg,rgb(45,110,190),rgb(232,230,222),rgb(214,69,65))}
 .panel h3{margin:0 0 2px;font-size:20px} .panel .sub2{color:var(--sub);font-size:13.5px}
@@ -116,7 +116,7 @@ __EXTRA__</style></head><body>
 <li><b>“왜” 분해:</b> 선형예측자를 요인별 기여 β·(x−평균)로 정확히 분해(오차 10⁻¹⁵). exp(기여) = 평균 점포 대비 배수, 요인 배수의 곱 = 위험 배수. <b>연관이며 인과가 아닙니다.</b></li>
 <li><b>검증:</b> 그룹 5-fold, 시군구 5-fold. 신뢰구간은 시군구 단위 부트스트랩. 미학습 그룹 점포 단위 C-index 0.637(0.5 = 무작위)로 중간 정도의 판별력입니다.</li>
 <li><b>BC 데이터의 한계:</b> 시군구×업종 평균이라 점포 매출이 아닙니다. 연령 구성은 같은 시군구 안에서 위험을 가르지 못했고 지역 유형 신호로 읽어야 합니다. 소비 규모·객단가·성장률은 예측을 개선하지 못했습니다(3장 표).</li>
-<li><b>지도:</b> 시군구 경계가 아니라 시군구 내 점포 좌표의 중앙값(EPSG:5174를 위·경도로 변환, 오차 수백 m)에 놓은 버블입니다. 배경 지도는 CARTO 타일(OpenStreetMap 데이터, 오른쪽 위 버튼으로 스타일 변경)이며 인터넷 연결이 필요합니다(끊겨도 버블·패널은 동작). 2026년 개편 지역명을 그대로 씁니다. 그룹당 점포가 30개 미만이면 실제 폐업률이 불안정해 회색 점선으로 표시합니다.</li>
+<li><b>지도:</b> 시군구 경계가 아니라 시군구 내 점포 좌표의 중앙값(EPSG:5174를 위·경도로 변환, 오차 수백 m)에 놓은 버블입니다. 배경 지도는 OpenStreetMap 타일(회색조)이며 인터넷 연결이 필요합니다(끊겨도 버블·패널은 동작). 2026년 개편 지역명을 그대로 씁니다. 그룹당 점포가 30개 미만이면 실제 폐업률이 불안정해 회색 점선으로 표시합니다.</li>
 <li><b>설명 문장:</b> 규칙으로 만든 문장이며 LLM을 쓰지 않습니다. 숫자는 모두 위 분해 결과에서 옵니다.</li>
 <li><b>주의:</b> 6개월 관측 창 하나, 프랜차이즈는 수작업 브랜드 목록 기반, 연령 코드 정의(1~6)는 원자료 명세로 재확인이 필요합니다. 배수는 정책 효과가 아닙니다.</li>
 </ul></div>
@@ -156,24 +156,14 @@ const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').
 const map=L.map('map',{minZoom:6,maxZoom:14,zoomSnap:0.5,preferCanvas:true,attributionControl:false});
 // Leaflet 접두('Leaflet | ' + 국기)는 빼고(라이선스상 제거 허용), 타일 제공처 크레딧(OSM/Esri)은 유지한다(OSM 이용 정책상 지도 위에 보여야 함).
 L.control.attribution({prefix:false,position:'bottomright'}).addTo(map);
-// 배경 타일: CARTO(OSM 데이터 기반, 데이터 오버레이용으로 설계된 절제된 스타일)를 기본으로 쓰고, 오른쪽 위 버튼으로 스타일을 바꿔 볼 수 있다.
-// 기본은 밝은 화면이면 'Positron', 다크 화면이면 'Dark Matter'. 못 불러오면 OpenStreetMap -> Esri 순으로 자동 대체한다.
-const cartoA='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>';
-const carto=p=>L.tileLayer('https://{s}.basemaps.cartocdn.com/'+p+'/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,attribution:cartoA});
-const bLight=carto('light_all'),bDark=carto('dark_all'),bVoy=carto('rastertiles/voyager');
-const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'tile-gray',attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
-const esri=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:15,className:'tile-gray',attribution:'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors'});
-const qtiles=new URLSearchParams(location.search).get('tiles');
-const pick={light:bLight,dark:bDark,voyager:bVoy,osm:osm,esri:esri};
-let terr=0;
+const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
+const esri=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:15,attribution:'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors'});
+let terr=0,fb=false;const qtiles=new URLSearchParams(location.search).get('tiles');
 function tileNote(t){$('#tilenote').textContent=t;}
-[bLight,bDark,bVoy,osm,esri].forEach(l=>{
-  l.on('tileload',()=>{if(map.hasLayer(l))terr=0;});
-  l.on('tileerror',()=>{if(!map.hasLayer(l))return;
-    if(l===esri){if(++terr>=6)tileNote('배경 지도를 불러오지 못했습니다(인터넷 연결이나 차단을 확인하세요). 버블은 좌표 기준으로 표시됩니다.');return;}
-    if(++terr>=3){terr=0;map.removeLayer(l);const nx=l===osm?esri:osm;nx.addTo(map);tileNote((l===osm?'OpenStreetMap':'선택한 배경')+' 타일을 불러오지 못해 대체 배경('+(nx===osm?'OpenStreetMap':'Esri')+')을 쓰고 있습니다.');}});});
-L.control.layers({'밝은 지도(기본)':bLight,'다크':bDark,'컬러(Voyager)':bVoy,'OpenStreetMap(회색조)':osm},null,{position:'topright',collapsed:true}).addTo(map);
-(pick[qtiles]||(dark?bDark:bLight)).addTo(map);
+osm.on('tileload',()=>{terr=0;});
+osm.on('tileerror',()=>{if(++terr>=3&&!fb){fb=true;map.removeLayer(osm);esri.addTo(map);tileNote('OpenStreetMap 타일을 불러오지 못해 대체 배경(Esri)을 쓰고 있습니다.');}});
+esri.on('tileerror',()=>{if(fb&&++terr>=6)tileNote('배경 지도를 불러오지 못했습니다(인터넷 연결이나 차단을 확인하세요). 버블은 좌표 기준으로 표시됩니다.');});
+(qtiles==='esri'?esri:osm).addTo(map);
 map.fitBounds([[33.0,125.0],[38.7,130.8]]);
 const order=D.regions.map((r,i)=>i).sort((a,b)=>D.regions[b].n-D.regions[a].n);   // 큰 버블을 먼저 그려 작은 버블이 위에 오게 한다
 const markers={};

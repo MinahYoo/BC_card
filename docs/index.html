@@ -697,46 +697,80 @@ footer{margin-top:56px;color:var(--sub);font-size:13.5px}
 @media (max-width:560px){header{padding-top:32px} h2{font-size:21px}}
 
 
+/* 디자인 토큰: UI 강조색(--acc)은 하나로 통일하고, 빨강/파랑(--hi/--lo)은 위험·안전 데이터 표현에만 쓴다 */
+:root{--acc:#0f6b63;--acc-fg:#fff;--acc-soft:rgba(15,107,99,.10);--sub:#566173;
+ --hi:#d64541;--lo:#2d6ebe;--hi-text:#b42f2b;--lo-text:#1f5aa6;--hi-soft:rgba(214,69,65,.15);--lo-soft:rgba(45,110,190,.15);--flat:#7d8696;
+ --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--fs-sm:14px;--fs-md:15px;--fs-lg:18px;--r:10px;--head-h:58px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--acc:#5fd3c6;--acc-fg:#0b1f1d;--acc-soft:rgba(95,211,198,.14);--sub:#a8b1c0;
+ --hi:#f0716d;--lo:#6ea8f0;--hi-text:#f59e9b;--lo-text:#8fbcf5;--hi-soft:rgba(240,113,109,.2);--lo-soft:rgba(110,168,240,.2);--flat:#8c95a5}}
+html{scroll-padding-top:calc(var(--head-h) + 8px)}
 body{scroll-behavior:smooth}
+button,select,input{font-family:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
-.top .in{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between}
-.brand{font-weight:800;font-size:16px} .brand span{color:var(--sub);font-weight:500;font-size:13px;margin-left:8px}
-nav{display:flex;gap:4px;flex-wrap:wrap} nav button{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:7px 14px;border-radius:999px;font:inherit;font-size:14px;cursor:pointer}
-nav button[aria-selected="true"]{background:var(--acc);border-color:var(--acc);color:#fff}
-main.wide{max-width:1180px;padding-bottom:80px} section.tab{display:none;padding-top:22px} section.tab.on{display:block}
-.hero{padding:6px 0 14px} .hero h1{font-size:clamp(22px,4vw,32px);margin:0 0 6px} .hero p{margin:0;color:var(--sub);max-width:820px}
-.ctrl{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:8px 0 14px}
-.chip-b{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:6px 12px;border-radius:999px;font:inherit;font-size:13.5px;cursor:pointer}
-.chip-b.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-select,input[type=text]{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg)}
+.top .in{max-width:1180px;margin:0 auto;padding:10px var(--s4);display:flex;flex-wrap:wrap;gap:var(--s2) 18px;align-items:center;justify-content:space-between}
+.brand{font-weight:800;font-size:16px} .brand span{color:var(--sub);font-weight:500;font-size:var(--fs-sm);margin-left:var(--s2)}
+nav{display:flex;gap:var(--s1);flex-wrap:wrap}
+nav button{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:7px 14px;border-radius:999px;font-size:var(--fs-sm);cursor:pointer}
+nav button:hover{border-color:var(--acc);color:var(--acc)}
+nav button[aria-selected="true"],nav button[aria-selected="true"]:hover{background:var(--acc);border-color:var(--acc);color:var(--acc-fg)}
+main.wide{max-width:1180px;padding-bottom:80px} section.tab{display:none;padding-top:var(--s4)} section.tab.on{display:block}
+.hero{padding:2px 0 var(--s2)} .hero h1{font-size:clamp(20px,3vw,26px);margin:0 0 2px} .hero p{margin:0;color:var(--sub);font-size:var(--fs-sm)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:var(--s2) 0 14px}
+.toolbar{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s3);align-items:center;margin:var(--s2) 0 6px}
+.toolbar label{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:var(--fs-sm)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 6px}
+.chip-b{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:6px 12px;border-radius:999px;font-size:var(--fs-sm);cursor:pointer}
+.chip-b:hover{border-color:var(--acc);background:var(--acc-soft)}
+.chip-b.on,.chip-b.pri{background:var(--acc);color:var(--acc-fg);border-color:var(--acc)}
+.chip-b.pri:hover{filter:brightness(1.08)}
+select,input[type=text]{font-size:var(--fs-sm);padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg)}
+select:hover,input[type=text]:hover{border-color:var(--acc)}
 input[type=text]{min-width:min(260px,100%);flex:1}
-.grid2{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
-@media (max-width:920px){.grid2{grid-template-columns:1fr}}
-.mapcard{position:relative;padding:8px;isolation:isolate} #map{width:100%;height:min(78vh,700px);min-height:440px;border-radius:8px;z-index:0}
-.leaflet-container{font:inherit;background:var(--card)} .leaflet-tile-pane{filter:grayscale(1) contrast(.88) brightness(1.08)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:grayscale(1) invert(1) contrast(.85) brightness(.85)}} .leaflet-tooltip{font-size:12.5px;line-height:1.4}
-.legend{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--sub);margin:8px 4px 2px}
-.legend .bar{height:10px;width:190px;border-radius:5px;background:linear-gradient(90deg,rgb(45,110,190),rgb(232,230,222),rgb(214,69,65))}
-.panel h3{margin:0 0 2px;font-size:20px} .panel .sub2{color:var(--sub);font-size:13.5px}
-.big{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:8px 0 2px} .big b{font-size:38px;line-height:1}
-.big span{color:var(--sub);font-size:14px}
-.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;background:var(--line);color:var(--fg);margin-right:4px}
-.tag.hi{background:rgba(214,69,65,.16);color:var(--neg)} .tag.lo{background:rgba(45,110,190,.16);color:var(--pos)}
-.why{margin:6px 0 4px} .why p{margin:6px 0;font-size:14.5px}
-.blk{border-top:1px solid var(--line);margin-top:14px;padding-top:12px} .blk h4{margin:0 0 6px;font-size:14px;color:var(--sub);font-weight:600}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:12px} @media (max-width:520px){.two{grid-template-columns:1fr}}
+.grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:var(--s4);align-items:start}
+.mapcard{position:sticky;top:calc(var(--head-h) + 12px);padding:6px;isolation:isolate}
+#map{width:100%;height:clamp(440px,calc(100vh - 300px),760px);border-radius:8px;z-index:0}
+@media (max-width:767px){.grid2{grid-template-columns:1fr}.mapcard{position:static}#map{height:min(62vh,520px);min-height:340px}.brand span{display:none}.top{position:static}.top .in{padding:var(--s2) var(--s4)}nav button{padding:6px 10px}.maplegend{width:184px;font-size:12px;padding:6px 8px}.maplegend .lg-d{display:none}}
+.leaflet-container{font:inherit;background:var(--card)} .leaflet-tile-pane .tiles-osm{filter:grayscale(1) contrast(.88) brightness(1.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane .tiles-osm{filter:grayscale(1) invert(1) contrast(.85) brightness(.85)}}
+.leaflet-tooltip{font-size:13px;line-height:1.4}
+.maplegend{background:color-mix(in srgb,var(--card) 93%,transparent);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 10px 8px;font-size:12.5px;line-height:1.35;box-shadow:0 1px 5px rgba(0,0,0,.18);width:224px}
+.maplegend .lg-t{font-weight:700;margin-bottom:5px}
+.maplegend .lg-bar{height:10px;border-radius:5px;background:linear-gradient(90deg,rgb(45,110,190),rgb(232,230,222),rgb(214,69,65))}
+.maplegend .lg-ticks{position:relative;height:17px;margin-top:2px;color:var(--sub);font-size:12px}
+.maplegend .lg-ticks span{position:absolute;top:3px;white-space:nowrap} .maplegend .lg-ticks i{position:absolute;top:-1px;width:1px;height:4px;background:var(--sub)}
+.maplegend .lg-r{display:flex;align-items:center;gap:6px;color:var(--sub);margin-top:3px}
+.maplegend .dot{display:inline-block;border-radius:50%;background:var(--flat);border:1px solid rgba(0,0,0,.4);flex:none}
+.maplegend .dot.dash{width:11px;height:11px;background:rgba(154,160,166,.35);border:1.5px dashed #6b7280}
+.leaflet-control-attribution{font-size:11px;line-height:1.35}
+.mapbtns{display:flex;gap:6px}
+.mapbtns button{font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.mapbtns button:hover{border-color:var(--acc);color:var(--acc)}
+.city-lbl{font-size:12px;font-weight:600;color:#5b6472;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;white-space:nowrap;pointer-events:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .city-lbl{color:#b7bfcc;text-shadow:0 0 3px #000,0 0 3px #000}}
+.panel h3{margin:0 0 2px;font-size:20px} .panel .sub2{color:var(--sub);font-size:var(--fs-sm)}
+.panel .clear{float:right;margin-left:var(--s2)} .only-m{display:none} @media (max-width:767px){.only-m{display:inline-block}div.only-m{display:block}}
+.big{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:var(--s2) 0 2px} .big b{font-size:38px;line-height:1}
+.big span{color:var(--sub);font-size:var(--fs-sm)}
+.tag{display:inline-block;padding:1px 9px;border-radius:999px;font-size:13px;background:var(--line);color:var(--fg);margin:0 2px}
+.tag.hi{background:var(--hi-soft);color:var(--hi-text)} .tag.lo{background:var(--lo-soft);color:var(--lo-text)}
+.why{margin:6px 0 4px} .why p{margin:6px 0;font-size:var(--fs-md)}
+.blk{border-top:1px solid var(--line);margin-top:14px;padding-top:var(--s3)} .blk h4{margin:0 0 6px;font-size:var(--fs-sm);color:var(--sub);font-weight:600}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)} @media (max-width:520px){.two{grid-template-columns:1fr}}
 .mini{max-width:280px;width:100%}.mini text{font-size:11px;fill:var(--fg)} .mini .v{fill:var(--sub)}
 .spark{width:100%;max-width:320px;height:auto}
-.nb{display:flex;flex-wrap:wrap;gap:6px} .nb button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:4px 9px;font:inherit;font-size:12.5px;cursor:pointer}
-.warn{background:var(--warn);border:1px solid var(--warnb);border-radius:8px;padding:8px 12px;font-size:13.5px;margin:8px 0}
-.hint{color:var(--sub);font-size:13.5px}
+.nb{display:flex;flex-wrap:wrap;gap:6px} .nb button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:5px 10px;font-size:var(--fs-sm);cursor:pointer}
+.nb button:hover{border-color:var(--acc);background:var(--acc-soft)}
+.warn{background:var(--warn);border:1px solid var(--warnb);border-radius:8px;padding:8px 12px;font-size:var(--fs-sm);margin:var(--s2) 0}
+.hint{color:var(--sub);font-size:var(--fs-sm)}
 .tbl td.b1{min-width:120px} .mb{display:inline-block;height:9px;border-radius:3px;vertical-align:middle;margin-right:6px}
 .kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
-.kp div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px} .kp b{display:block;font-size:20px} .kp span{font-size:12.5px;color:var(--sub)}
+.kp div{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:10px var(--s3)} .kp b{display:block;font-size:20px} .kp span{font-size:var(--fs-sm);color:var(--sub)}
 .scat circle{opacity:.75} .scat text{font-size:11px;fill:var(--sub)}
 .cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
-#panel .bar.neg{fill:#d64541}#panel .bar.pos{fill:#2d6ebe}#panel .bar.soft{opacity:.42}
-.legend2{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12.5px;color:var(--sub);margin:8px 4px 2px}.legend2 span{white-space:nowrap}
+#panel .bar.neg{fill:var(--hi)}#panel .bar.pos{fill:var(--lo)}#panel .bar.soft{opacity:.42}
+.legend2{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:var(--fs-sm);color:var(--sub);margin:var(--s2) 4px 2px}.legend2 span{white-space:nowrap}
+.cap{font-size:var(--fs-sm)}
 #err{display:none;background:#fee;color:#900;padding:8px;font-size:12px}
 </style></head><body>
 <div id="err"></div>
@@ -750,18 +784,17 @@ input[type=text]{min-width:min(260px,100%);flex:1}
 
 <section class="tab on" id="t-map">
 <div class="hero"><h1>어느 지역·업종이 왜 위험한가</h1>
-<p>2026-01-01 영업 중이던 점포 635,536개를 180일 추적한 결과입니다. 색은 “평균 점포 대비 폐업 위험 배수”(연관, 인과 아님)이고, 버블을 누르면 <b>왜</b> 그런지(요인 분해)와 BC카드 소비 구성을 볼 수 있습니다.</p></div>
-<div class="ctrl" id="bizbar"></div>
-<div class="ctrl">
-<label class="hint">색 기준 <select id="mode"><option value="mult">위험 배수 (모형 M3L)</option><option value="rate">실제 폐업률 (전국 대비)</option></select></label>
+<p>2026-01-01 영업 중이던 점포 635,536개를 180일 추적했어요. 색은 평균 점포 대비 폐업 위험(연관이며 인과 아님)이고, 버블을 누르면 이유를 볼 수 있어요.</p></div>
+<div class="toolbar">
 <input type="text" id="ask" placeholder="예) 동탄 서양음식 / 합천 한식 / 한식 위험한 곳" aria-label="지역·업종 질문">
-<button class="chip-b" id="askbtn">설명 보기</button>
+<button class="chip-b pri" id="askbtn">설명 보기</button>
+<label>색 기준 <select id="mode"><option value="mult">위험 배수 (모형 M3L)</option><option value="rate">실제 폐업률 (전국 대비)</option></select></label>
 </div>
-<div class="hint" id="askhelp" style="margin:-4px 0 12px">질문 형식은 <b>지역 + 업종</b>, <b>지역만</b>, <b>업종 + 위험한/안전한 곳</b> 세 가지입니다(LLM이 아니라 정해진 형식만 이해합니다). 예시: <button class="chip-b" data-q="동탄 서양음식">동탄 서양음식</button> <button class="chip-b" data-q="합천 한식">합천 한식</button> <button class="chip-b" data-q="강남구">강남구</button> <button class="chip-b" data-q="한식 위험한 곳">한식 위험한 곳</button> <button class="chip-b" data-q="경남 한식 안전한 곳">경남 한식 안전한 곳</button></div>
+<div class="chips" id="bizbar"></div>
+<div class="hint" id="askhelp" style="margin:0 0 var(--s3)">질문 형식은 <b>지역 + 업종</b>, <b>지역만</b>, <b>업종 + 위험한/안전한 곳</b> 세 가지입니다(LLM이 아니라 정해진 형식만 이해합니다). 예시: <button class="chip-b" data-q="동탄 서양음식">동탄 서양음식</button> <button class="chip-b" data-q="합천 한식">합천 한식</button> <button class="chip-b" data-q="강남구">강남구</button> <button class="chip-b" data-q="한식 위험한 곳">한식 위험한 곳</button> <button class="chip-b" data-q="경남 한식 안전한 곳">경남 한식 안전한 곳</button></div>
 <div class="grid2">
-<div class="card mapcard"><div id="map" role="region" aria-label="시군구 버블 지도"></div>
-<div class="legend2"><span>안전</span><div class="bar" style="height:10px;width:170px;border-radius:5px;background:linear-gradient(90deg,rgb(45,110,190),rgb(232,230,222),rgb(214,69,65))"></div><span>위험</span></div><div class="hint" id="tilenote" style="margin:2px 4px 0;color:var(--neg)"></div><div class="hint" style="margin:2px 4px 4px">버블 크기 = 점포 수 · 점선 회색 = 표본 30개 미만 · 시군구 내 점포 좌표의 중앙값에 표시 · 휠/＋－로 확대</div></div>
-<div class="card panel" id="panel"><p class="hint">지도의 버블을 누르거나 위 입력창에 <b>지역 + 업종</b>(예: 동탄 서양음식)을 적어 보세요. 형식은 입력창 아래에 있습니다.<br><br>“왜”는 Cox 모형(M3L)의 선형예측자를 요인별로 정확히 쪼갠 값입니다. 붉은 막대는 위험을 높이는 요인, 푸른 막대는 낮추는 요인이며, 요인들을 곱하면 위험 배수가 됩니다.</p></div>
+<div class="card mapcard"><div id="map" role="region" aria-label="시군구 버블 지도"></div><div class="hint only-m" style="margin:6px 4px 2px">버블 크기 = 점포 수 · 점선 회색 = 표본 30개 미만(업종 선택 시)</div><div class="hint" id="tilenote" style="margin:2px 4px 0;color:var(--hi-text)"></div></div>
+<div class="card panel" id="panel"></div>
 </div>
 </section>
 
@@ -893,18 +926,32 @@ function col(ratio){
 const colorOf=v=>S.mode==='mult'?col(v.mult):col(v.rate/NAT.rate);
 
 // ---------- 지도 (Leaflet + 배경 지도 타일) ----------
-// 배경 타일은 외부(CARTO/OpenStreetMap)에서 불러온다. 타일을 못 불러와도 버블과 패널은 그대로 동작한다.
+// 배경 타일은 외부(Esri 라이트 그레이 → OpenStreetMap 순으로 대체)에서 불러온다. 타일을 못 불러와도 버블과 패널은 그대로 동작한다.
+// (CARTO 타일은 현재 API 키가 없으면 워터마크가 붙어 쓰지 않는다.) Esri 라이트/다크 그레이 "Base" 타일은 주변국 지명이 거의 없어 버블이 눈에 띈다.
+// 주요 도시 이름만 아래에서 직접 얹는다.
 const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches&&document.documentElement.dataset.theme!=='light';
-const map=L.map('map',{minZoom:6,maxZoom:14,zoomSnap:0.5,preferCanvas:true,attributionControl:true});
-const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
-const esri=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:15,attribution:'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors'});
-let terr=0,fb=false;const qtiles=new URLSearchParams(location.search).get('tiles');
+const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const KR=[[33.0,125.0],[38.7,130.8]], MAXB=[[32.0,123.5],[39.6,132.5]], SUDO=[[36.95,126.45],[37.95,127.65]];
+const map=L.map('map',{minZoom:6,maxZoom:14,zoomSnap:0.5,preferCanvas:true,attributionControl:true,maxBounds:MAXB,maxBoundsViscosity:0.9});
+const TILES=[
+ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_'+(dark?'Dark':'Light')+'_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:15,attribution:'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors'}),
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'tiles-osm',attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'})];
+const TILE_NAME=['Esri','OpenStreetMap'];
+let tcur=0,terr=0;const qtiles=new URLSearchParams(location.search).get('tiles');
 function tileNote(t){$('#tilenote').textContent=t;}
-osm.on('tileload',()=>{terr=0;});
-osm.on('tileerror',()=>{if(++terr>=3&&!fb){fb=true;map.removeLayer(osm);esri.addTo(map);tileNote('OpenStreetMap 타일을 불러오지 못해 대체 배경(Esri)을 쓰고 있습니다.');}});
-esri.on('tileerror',()=>{if(fb&&++terr>=6)tileNote('배경 지도를 불러오지 못했습니다(인터넷 연결이나 차단을 확인하세요). 버블은 좌표 기준으로 표시됩니다.');});
-(qtiles==='esri'?esri:osm).addTo(map);
-map.fitBounds([[33.0,125.0],[38.7,130.8]]);
+function useTiles(k){if(k>=TILES.length){tileNote('배경 지도를 불러오지 못했습니다(인터넷 연결이나 차단을 확인하세요). 버블은 좌표 기준으로 표시됩니다.');return;}
+  if(TILES[tcur]&&map.hasLayer(TILES[tcur]))map.removeLayer(TILES[tcur]);
+  tcur=k;terr=0;TILES[k].addTo(map);TILES[k].bringToBack();if(k>0)tileNote(TILE_NAME[k-1]+' 타일을 불러오지 못해 대체 배경('+TILE_NAME[k]+')을 쓰고 있습니다.');}
+TILES.forEach((t,k)=>{t.on('tileload',()=>{if(k===tcur)terr=0;});t.on('tileerror',()=>{if(k===tcur&&++terr>=4)useTiles(k+1);});});
+useTiles(qtiles==='osm'?1:0);
+map.fitBounds(KR);
+function fitMin(){map.setMinZoom(Math.max(5.5,map.getBoundsZoom(MAXB)));}
+fitMin();map.on('resize',fitMin);
+// 주요 도시 이름(배경 지도 대신 직접 표기, 버블 아래 층에 그린다)
+map.createPane('labels').style.zIndex=350;
+[['서울',37.5665,126.978],['인천',37.4563,126.7052],['수원',37.2636,127.0286],['춘천',37.8813,127.7298],['강릉',37.7519,128.8761],['청주',36.6424,127.489],['대전',36.3504,127.3845],
+ ['전주',35.8242,127.148],['광주',35.1595,126.8526],['목포',34.8118,126.3922],['안동',36.5684,128.7294],['대구',35.8714,128.6014],['포항',36.019,129.3435],['울산',35.5384,129.3114],
+ ['창원',35.2281,128.6811],['부산',35.1796,129.0756],['제주',33.4996,126.5312]].forEach(c=>L.marker([c[1],c[2]],{pane:'labels',interactive:false,keyboard:false,icon:L.divIcon({className:'city-lbl',html:c[0],iconSize:[0,0]})}).addTo(map));
 const order=D.regions.map((r,i)=>i).sort((a,b)=>D.regions[b].n-D.regions[a].n);   // 큰 버블을 먼저 그려 작은 버블이 위에 오게 한다
 const markers={};
 const tipHtml=i=>{const v=val(i,S.biz),R=D.regions[i];
@@ -912,15 +959,27 @@ const tipHtml=i=>{const v=val(i,S.biz),R=D.regions[i];
 order.forEach(i=>{const R=D.regions[i];
   const m=L.circleMarker([R.lat,R.lon],{radius:5,weight:.8,color:'rgba(0,0,0,.45)',fillOpacity:.86}).addTo(map);
   m.on('click',()=>select(i)); m.bindTooltip(()=>tipHtml(i),{sticky:true,direction:'top',opacity:.95}); markers[i]=m;});
-const ZF=()=>Math.max(0.75,Math.min(3.2,Math.pow(1.28,map.getZoom()-7)));      // 확대할수록 버블을 키워 겹침을 줄인다
+const ZF=()=>Math.max(0.75,Math.min(2.6,Math.pow(1.28,map.getZoom()-7)));      // 확대할수록 버블을 키워 겹침을 줄인다
+const RMAX=7.5;                                                                  // 큰 시군구가 이웃을 덮지 않도록 기본 반지름 상한
+const ringCol=dark?'#fff':'#111';
+const ringHalo=L.circleMarker([0,0],{radius:1,fill:false,weight:8,color:dark?'#111':'#fff',opacity:0,interactive:false}).addTo(map);
+const ring=L.circleMarker([0,0],{radius:1,fill:false,weight:4,color:ringCol,opacity:0,interactive:false}).addTo(map);
+const pulse=L.circleMarker([0,0],{radius:1,fill:false,weight:3,color:ringCol,opacity:0,interactive:false}).addTo(map);
 const nbLayer=L.layerGroup().addTo(map);
+let ringR=0,pulseRAF=0;
+function firePulse(){
+  cancelAnimationFrame(pulseRAF);if(S.sel===null||reduceMotion)return;
+  const a=D.regions[S.sel],t0=performance.now(),r0=ringR;pulse.setLatLng([a.lat,a.lon]);
+  (function f(t){const k=Math.min(1,(t-t0)/1000);pulse.setRadius(r0+k*30);pulse.setStyle({opacity:.7*(1-k)});if(k<1)pulseRAF=requestAnimationFrame(f);else pulse.setStyle({opacity:0});})(t0);
+}
 function update(){
-  const zf=ZF();
+  const zf=ZF();let showRing=false;
   order.forEach(i=>{const m=markers[i],v=val(i,S.biz);
     if(!v){m.setStyle({opacity:0,fillOpacity:0,radius:0.1});return;}
-    const k=S.biz<0?0.055:0.09,small=S.biz>=0&&v.n<30,sel=i===S.sel;
-    m.setStyle({radius:(2.2+k*Math.sqrt(v.n))*zf,fillColor:small?'#9aa0a6':colorOf(v),fillOpacity:small?0.35:0.86,color:sel?'#111':'rgba(0,0,0,.45)',weight:sel?3:0.8,opacity:1,dashArray:small?'2 2':null});
-    if(sel)m.bringToFront();});
+    const k=S.biz<0?0.055:0.09,small=S.biz>=0&&v.n<30,sel=i===S.sel,r=Math.min(2.2+k*Math.sqrt(v.n),RMAX)*zf;
+    m.setStyle({radius:r,fillColor:small?'#9aa0a6':colorOf(v),fillOpacity:small?0.35:0.86,color:sel?(dark?'#fff':'#111'):'rgba(0,0,0,.45)',weight:sel?2:0.8,opacity:1,dashArray:small?'2 2':null});
+    if(sel){ringR=r+5;showRing=true;const R=D.regions[i];ring.setLatLng([R.lat,R.lon]);ringHalo.setLatLng([R.lat,R.lon]);ring.setRadius(ringR);ringHalo.setRadius(ringR);m.bringToFront();}});
+  ring.setStyle({opacity:showRing?1:0});ringHalo.setStyle({opacity:showRing?.9:0});if(showRing){ringHalo.bringToFront();ring.bringToFront();}
   drawLinks();
 }
 map.on('zoomend',update);
@@ -928,6 +987,27 @@ function drawLinks(){
   nbLayer.clearLayers(); if(S.sel===null) return; const a=D.regions[S.sel];
   a.nb.forEach(j=>{const b=D.regions[j];L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:dark?'#ddd':'#222',weight:1.3,dashArray:'4 4',opacity:.75,interactive:false}).addTo(nbLayer);});
   if(D.regions[S.sel]&&!map.getBounds().contains([a.lat,a.lon])) map.panTo([a.lat,a.lon]);
+}
+// 지도 이동: 지역 선택 시 해당 지역으로, 해제 시 전국으로
+const flyOpt={duration:reduceMotion?0:.8};
+const goNational=()=>map.flyToBounds(KR,flyOpt);
+const goSudo=()=>map.flyToBounds(SUDO,flyOpt);
+const goRegion=i=>{const R=D.regions[i];map.flyTo([R.lat,R.lon],Math.max(map.getZoom(),9.5),flyOpt);};
+const goRegions=is=>{if(!is.length)return goNational();map.flyToBounds(L.latLngBounds(is.map(i=>[D.regions[i].lat,D.regions[i].lon])),{maxZoom:10.5,padding:[30,30],...flyOpt});};
+// 지도 위 버튼
+const BTNS=L.control({position:'topright'});
+BTNS.onAdd=()=>{const d=L.DomUtil.create('div','mapbtns');d.innerHTML='<button type="button" id="btn-nat" title="선택을 해제하고 전국 지도로 돌아갑니다">전국 보기</button><button type="button" id="btn-sudo" title="서울·경기·인천으로 확대합니다">수도권</button>';L.DomEvent.disableClickPropagation(d);return d;};
+BTNS.addTo(map);
+// 범례(지도 위 오버레이): 색 눈금은 col()의 실제 스케일(배수 1/1.9 ~ 1.9에서 포화)과 같다
+const LG=L.control({position:'bottomleft'});
+LG.onAdd=()=>{const d=L.DomUtil.create('div','maplegend');d.id='maplegend';L.DomEvent.disableClickPropagation(d);return d;};
+LG.addTo(map);
+function renderLegend(){
+  const r=S.mode==='rate';
+  $('#maplegend').innerHTML='<div class="lg-t">'+(r?'실제 폐업률 (전국 평균 대비)':'폐업 위험도 (평균 점포 대비)')+'</div><div class="lg-bar"></div>'+
+   '<div class="lg-ticks"><i style="left:0"></i><i style="left:50%"></i><i style="right:0"></i><span style="left:0">×0.53↓</span><span style="left:50%;transform:translateX(-50%)">×1.0</span><span style="right:0">×1.9↑</span></div><div class="lg-r" style="justify-content:space-between;margin-top:0"><span>◀ 안전</span><span>위험 ▶</span></div>'+
+   '<div class="lg-r lg-d"><span class="dot" style="width:7px;height:7px"></span><span class="dot" style="width:13px;height:13px"></span> 점포 수가 많을수록 큰 원</div>'+
+   '<div class="lg-r lg-d"><span class="dot dash"></span> 점선 회색 = 표본 30개 미만</div>';
 }
 
 // ---------- 패널 ----------
@@ -987,8 +1067,8 @@ function explain(r,b){
 function renderPanel(){
   const p=$('#panel'); if(S.sel===null) return; const r=S.sel,R=D.regions[r],b=S.biz,v=val(r,b);
   const nm=R.sido+' '+R.name;
-  let h='<h3>'+nm+'</h3><div class="sub2">'+(b>=0?BIZ[b]:'전체 7개 업종')+' · 점포 '+(v?v.n.toLocaleString():0)+'개</div>';
-  if(!v){$('#panel').innerHTML=h+'<p class="hint">이 시군구에는 해당 업종 점포가 없습니다.</p>'+bizRows(r);return;}
+  let h='<button class="chip-b clear" data-act="clear">✕ 선택 해제</button><button class="chip-b clear only-m" data-act="tomap">↑ 지도 보기</button><h3>'+nm+'</h3><div class="sub2">'+(b>=0?BIZ[b]:'전체 7개 업종')+' · 점포 '+(v?v.n.toLocaleString():0)+'개</div>';
+  if(!v){$('#panel').innerHTML=h+'<p class="hint">이 시군구에는 해당 업종 점포가 없습니다.</p>'+bizRows(r);bindPanel(p);return;}
   h+='<div class="big"><b style="color:'+(v.mult>=1?'var(--neg)':'var(--pos)')+'">×'+v.mult.toFixed(2)+'</b><span>평균 점포 대비 위험 배수</span></div>';
   h+='<div class="sub2">실제 폐업률 '+pct(v.rate)+' <span class="hint">(전국 '+pct(NAT.rate)+')</span></div>';
   if(b>=0&&v.n<30) h+='<div class="warn">점포가 30개 미만이라 실제 폐업률은 우연 변동이 큽니다. 배수는 모형 기반이라 상대적으로 안정적입니다.</div>';
@@ -999,20 +1079,30 @@ function renderPanel(){
     h+='<div class="blk"><h4>상권 프로필</h4><div class="kp"><div><b>'+g.age_yr.toFixed(1)+'년</b><span>평균 영업연수 (전국 '+NAT.age_yr.toFixed(1)+')</span></div><div><b>'+pct(g.fr)+'</b><span>프랜차이즈 (전국 '+pct(NAT.fr)+')</span></div><div><b>'+pct(g.reg_hist)+' / '+pct(g.nb_hist)+'</b><span>직전 1년 폐업률 자기 / 이웃</span></div><div><b>'+g.n.toLocaleString()+'개</b><span>경쟁 점포(같은 업종)</span></div></div></div>';
   } else h+=bizRows(r);
   h+='<div class="blk"><h4>모형이 참고하는 가까운 이웃 5곳(지도의 점선)</h4><div class="nb">'+R.nb.map(j=>{const z=val(j,b);return '<button data-r="'+j+'">'+D.regions[j].name+(z?' ×'+z.mult.toFixed(2):'')+'</button>';}).join('')+'</div></div>';
-  p.innerHTML=h; p.querySelectorAll('.nb button').forEach(x=>x.addEventListener('click',()=>select(+x.dataset.r)));
+  p.innerHTML=h; p.querySelectorAll('.nb button').forEach(x=>x.addEventListener('click',()=>select(+x.dataset.r,true)));
+  bindPanel(p);
+}
+function bindPanel(p){
   p.querySelectorAll('tr[data-b]').forEach(x=>x.addEventListener('click',()=>{setBiz(+x.dataset.b);}));
+  p.querySelectorAll('[data-act="clear"]').forEach(x=>x.addEventListener('click',clearSel));
+  p.querySelectorAll('[data-act="tomap"]').forEach(x=>x.addEventListener('click',()=>$('#map').scrollIntoView({behavior:'smooth',block:'center'})));
+}
+function renderHome(){
+  $('#panel').innerHTML='<p class="hint">지도의 버블을 누르거나 위 입력창에 <b>지역 + 업종</b>(예: 동탄 서양음식)을 적어 보세요. 형식은 입력창 아래에 있습니다.<br><br>“왜”는 Cox 모형(M3L)의 선형예측자를 요인별로 정확히 쪼갠 값입니다. 붉은 막대는 위험을 높이는 요인, 푸른 막대는 낮추는 요인이며, 요인들을 곱하면 위험 배수가 됩니다.</p>';
 }
 function bizRows(r){
   let s='<div class="blk"><h4>업종별 (누르면 그 업종으로 전환)</h4><table class="tbl"><thead><tr><th>업종</th><th class="num">점포</th><th class="num">폐업률</th><th class="num">위험 배수</th></tr></thead><tbody>';
   BIZ.forEach((nm,b)=>{const v=val(r,b);if(!v)return;s+='<tr data-b="'+b+'" style="cursor:pointer"><td>'+nm+'</td><td class="num">'+v.n.toLocaleString()+'</td><td class="num">'+pct(v.rate)+'</td><td class="num"><b style="color:'+(v.mult>=1?'var(--neg)':'var(--pos)')+'">×'+v.mult.toFixed(2)+'</b></td></tr>';});
   return s+'</tbody></table></div>';
 }
-function select(i){S.sel=i;update();renderPanel();}
+const isMobile=()=>window.matchMedia('(max-width:767px)').matches;
+function select(i,fly){S.sel=i;update();renderPanel();firePulse();if(fly)goRegion(i);if(isMobile())$('#panel').scrollIntoView({behavior:'smooth',block:'start'});}
+function clearSel(){S.sel=null;update();renderHome();goNational();}
 function setBiz(b){S.biz=b;document.querySelectorAll('#bizbar .chip-b').forEach(x=>x.classList.toggle('on',+x.dataset.b===b));update();renderPanel();}
 // 업종 필터
 (function(){const bar=$('#bizbar');bar.innerHTML='<span class="hint">업종</span>'+['전체'].concat(BIZ).map((nm,i)=>'<button class="chip-b'+(i===0?' on':'')+'" data-b="'+(i-1)+'">'+nm+'</button>').join('');
   bar.querySelectorAll('.chip-b').forEach(x=>x.addEventListener('click',()=>setBiz(+x.dataset.b)));})();
-$('#mode').addEventListener('change',e=>{S.mode=e.target.value;update();});
+$('#mode').addEventListener('change',e=>{S.mode=e.target.value;renderLegend();update();});
 
 // ---------- 규칙 기반 질문 (LLM 아님: 정해진 형태만 이해한다) ----------
 const BIZKEY={'한식':0,'일식':1,'회집':1,'횟집':1,'중국':2,'중식':2,'서양':3,'양식':3,'스넥':4,'스낵':4,'분식':4,'제과':5,'빵':5,'베이커리':5,'편의점':6};
@@ -1021,7 +1111,7 @@ const SIDOALIAS={'경남':'경상남도','경북':'경상북도','충남':'충�
 const SIDOS=[...new Set(D.regions.map(r=>r.sido))];
 const sidoOf=t=>SIDOALIAS[t]||SIDOS.find(x=>t.length>=2&&x.includes(t));
 const rname=i=>D.regions[i].sido.replace(/특별시|광역시|특별자치도|특별자치시/,'')+' '+D.regions[i].name;
-function say(html){$('#panel').innerHTML=html;$('#panel').querySelectorAll('[data-r]').forEach(x=>x.addEventListener('click',()=>{if(x.dataset.b!==undefined)setBizQuiet(+x.dataset.b);select(+x.dataset.r);}));}
+function say(html){$('#panel').innerHTML=html;$('#panel').querySelectorAll('[data-r]').forEach(x=>x.addEventListener('click',()=>{if(x.dataset.b!==undefined)setBizQuiet(+x.dataset.b);select(+x.dataset.r,true);}));}
 const HELP='<div class="hint"><b>이렇게 물어보세요</b><ul style="margin:6px 0 0 18px;padding:0"><li><b>지역 + 업종</b> — 동탄 서양음식 · 합천 한식 · 마포구 제과점</li><li><b>지역만</b> — 강남구 (전체 업종 요약과 업종별 표)</li><li><b>순위</b> — 한식 위험한 곳 · 서울 제과점 안전한 곳 · 경남 한식 위험한 곳</li></ul>'+
  '<p style="margin:8px 0 0">지역은 시군구 이름의 일부만 써도 됩니다(동탄, 합천). 업종은 한식·일식·중식·서양(양식)·스낵(분식)·제과점(빵)·편의점 7개만 있습니다. 카페·치킨 등 다른 업종, 두 지역 비교, 시점별 추세, 예측 질문은 지원하지 않습니다. “왜”는 지역+업종을 고르면 나오는 요인 분해가 답입니다.</p></div>';
 function ask(){
@@ -1038,7 +1128,7 @@ function ask(){
     else rows=D.regions.map((R,i)=>({r:i,m:R.mult,rate:R.rate,n:R.n})).filter(x=>x.n>=2000&&(!sido||D.regions[x.r].sido===sido));
     rows.sort((x,y)=>intent==='hi'?y.m-x.m:x.m-y.m); rows=rows.slice(0,8);
     if(!rows.length){say('<p>조건에 맞는 지역이 없습니다(점포 수가 충분한 곳만 순위에 넣습니다).</p>'+HELP);return;}
-    setBizQuiet(b);S.sel=null;update();
+    setBizQuiet(b);S.sel=null;update();sido?goRegions(D.regions.map((R,i)=>i).filter(i=>D.regions[i].sido===sido)):goNational();
     say('<h3>'+(sido?sido.replace(/특별시|광역시|특별자치도|특별자치시/,'')+' ':'전국 ')+(b>=0?BIZ[b]:'전체 업종')+' — 위험이 '+(intent==='hi'?'높은':'낮은')+' 곳 상위 '+rows.length+'</h3><p class="hint">점포 '+(b>=0?300:2000)+'개 이상인 곳만 순위에 넣었습니다. 누르면 설명이 열립니다.</p><div class="nb" style="flex-direction:column;align-items:stretch">'+
       rows.map(x=>'<button data-r="'+x.r+'" data-b="'+b+'" style="text-align:left">'+rname(x.r)+' · <b style="color:'+(x.m>=1?'var(--neg)':'var(--pos)')+'">×'+x.m.toFixed(2)+'</b> · 폐업률 '+pct(x.rate)+' · 점포 '+x.n.toLocaleString()+'</button>').join('')+'</div>');
     return;
@@ -1049,8 +1139,8 @@ function ask(){
     if(cand.length) break;}
   if(!cand.length){say('<p>“'+esc+'”에서 시군구를 찾지 못했습니다.</p>'+HELP);return;}
   setBizQuiet(b);
-  if(cand.length>1){S.sel=null;update();say('<p>여러 시군구가 맞습니다. 선택해 주세요.</p><div class="nb">'+cand.slice(0,14).map(i=>'<button data-r="'+i+'">'+D.regions[i].sido+' '+D.regions[i].name+'</button>').join('')+'</div>');return;}
-  select(cand[0]);
+  if(cand.length>1){S.sel=null;update();goRegions(cand);say('<p>여러 시군구가 맞습니다. 선택해 주세요.</p><div class="nb">'+cand.slice(0,14).map(i=>'<button data-r="'+i+'">'+D.regions[i].sido+' '+D.regions[i].name+'</button>').join('')+'</div>');return;}
+  select(cand[0],true);
 }
 function setBizQuiet(b){S.biz=b;document.querySelectorAll('#bizbar .chip-b').forEach(x=>x.classList.toggle('on',+x.dataset.b===b));}
 $('#askbtn').addEventListener('click',ask);$('#ask').addEventListener('keydown',e=>{if(e.key==='Enter')ask();});
@@ -1066,7 +1156,7 @@ function areaShow(){
   BIZ.forEach((nm,b)=>{const g=GI.has(i*10+b)?D.groups[GI.get(i*10+b)]:null;if(!g)return;const am=g.amt.filter(v=>v!==null),mean=am.length?am.reduce((a,c)=>a+c,0)/am.length:null;
     s+='<tr><td>'+nm+'</td><td class="num">'+g.n.toLocaleString()+'</td><td class="b1"><span class="mb" style="width:'+Math.min(g.rate/0.09*90,100).toFixed(0)+'px;background:var(--ref)"></span>'+pct(g.rate)+'</td><td class="b1"><span class="mb" style="width:'+Math.min(g.mult/2*90,100).toFixed(0)+'px;background:'+(g.mult>=1?'var(--neg)':'var(--pos)')+'"></span>×'+g.mult.toFixed(2)+'</td><td class="num">'+g.age_yr.toFixed(1)+'</td><td class="num">'+pct(g.fr)+'</td><td class="num">'+(mean===null?'-':Math.round(mean).toLocaleString())+'</td><td class="num">'+(mean===null?'-':(mean/g.n).toFixed(2))+'</td></tr>';});
   s+='</tbody></table></div><p class="cap">BC 소비는 시군구×업종 집계이며 점포당 값은 (월평균 소비 ÷ 1/1 영업 점포 수)입니다. <a href="#" id="tomap" style="color:var(--acc)">지도에서 보기 →</a></p>';
-  $('#areaout').innerHTML=s;$('#tomap').addEventListener('click',ev=>{ev.preventDefault();tab('map');select(i);});
+  $('#areaout').innerHTML=s;$('#tomap').addEventListener('click',ev=>{ev.preventDefault();tab('map');setTimeout(()=>select(i,true),90);});
 }
 $('#areaq').addEventListener('change',areaShow);$('#areaq').addEventListener('input',()=>{if(D.regions.some(r=>(r.sido+' '+r.name)===$('#areaq').value.trim()))areaShow();});
 const RB=$('#rankbiz');RB.innerHTML=BIZ.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join('');
@@ -1099,7 +1189,8 @@ RB.addEventListener('change',rank);rank();
 function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===t));document.querySelectorAll('section.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));history.replaceState(null,'','#'+t);window.scrollTo(0,0);if(t==='map')setTimeout(()=>map.invalidateSize(),50);}
 document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>tab(x.dataset.t)));
 if(location.hash&&$('#t-'+location.hash.slice(1)))tab(location.hash.slice(1));
-update();
+renderLegend();renderHome();update();
+$('#btn-nat').addEventListener('click',clearSel);$('#btn-sudo').addEventListener('click',goSudo);
 const aq=new URLSearchParams(location.search).get('area');if(aq){$('#areaq').value=aq;areaShow();}
 const qs=new URLSearchParams(location.search).get('q');if(qs){$('#ask').value=qs;ask();}
 </script></body></html>

@@ -193,7 +193,7 @@ body{overflow-x:clip}
 @media (max-width:767px){.band{padding:var(--s6) 0}}
 .hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--s3) var(--s5)}
 .hero .hd{min-width:0}
-@media (max-width:767px){.survlink{background:var(--acc-soft);border:1px solid var(--acc);border-radius:var(--r);padding:10px var(--s4);margin:8px 0;font-size:var(--fs-md)}
+.survlink{background:var(--acc-soft);border:1px solid var(--acc);border-radius:var(--r);padding:10px var(--s4);margin:8px 0;font-size:var(--fs-md)}
 .survlink a{color:var(--acc);font-weight:600}
 table.ov{min-width:560px}
 table.ov th{white-space:normal;vertical-align:bottom}table.ov th small{font-weight:400;color:var(--sub);font-size:var(--fs-sm)}
@@ -780,11 +780,11 @@ const SURVMAP={   // 요인 → 근거 차트 카드 id, 강조할 행 라벨, �
   etc:{c:'chart-c',rows:['입지','지역·업종 직전 폐업률'],name:'점포 단위 판별력 차트'}};
 function renderSurvLink(){
   const el=$('#survlink');if(!el)return;el.hidden=false;
-  if(S.sel===null){el.innerHTML='<b>지도와 연결</b> 지도에서 지역을 고르면, 그 지역에서 가장 크게 작용한 요인의 근거를 여기서 바로 볼 수 있어요. <button type="button" class="chip-b" data-go-tab="map">지도로 가기</button>';return;}
+  if(S.sel===null){el.innerHTML='<b>지도와 연결</b> 지도에서 지역을 고르면, 그 지역에서 가장 크게 작용한 요인의 근거를 여기서 바로 볼 수 있다. <button type="button" class="chip-b" data-go-tab="map">지도로 가기</button>';return;}
   const v=val(S.sel,S.biz);if(!v){el.hidden=true;return;}
   const core=factors(v.x).filter(d=>d.key!=='age').sort((a,b)=>Math.abs(Math.log(b.m))-Math.abs(Math.log(a.m))),d=core[0],who='<b>'+rname(S.sel)+(S.biz>=0?' '+BIZ[S.biz]:' 전체')+'</b>('+MX(v.mult)+')';
-  if(d.m>=0.97&&d.m<=1.03){el.innerHTML='지금 보고 있는 '+who+'에서는 뚜렷하게 작용한 요인이 없어요(모두 ±3% 이내).';return;}
-  el.innerHTML='지금 보고 있는 '+who+'에서 가장 크게 작용한 요인은 <b>'+d.label+'</b>('+(d.m>=1?'위험을 높임 ▲':'위험을 낮춤 ▼')+' ×'+d.m.toFixed(2)+')이에요. <a href="#'+SURVMAP[d.key].c+'" data-see="'+d.key+'">이 요인의 근거: '+SURVMAP[d.key].name+' 보기 →</a>';
+  if(d.m>=0.97&&d.m<=1.03){el.innerHTML='지금 보고 있는 '+who+'에서는 뚜렷하게 작용한 요인이 없다(모두 ±3% 이내).';return;}
+  el.innerHTML='지금 보고 있는 '+who+'에서 가장 크게 작용한 요인은 <b>'+d.label+'</b>('+(d.m>=1?'위험을 높임 ▲':'위험을 낮춤 ▼')+' ×'+d.m.toFixed(2)+')이다. <a href="#'+SURVMAP[d.key].c+'" data-see="'+d.key+'">이 요인의 근거: '+SURVMAP[d.key].name+' 보기 →</a>';
 }
 document.addEventListener('click',e=>{const a=e.target.closest('[data-see]');if(!a)return;e.preventDefault();
   const mp=SURVMAP[a.dataset.see],card=document.getElementById(mp.c);if(!card)return;

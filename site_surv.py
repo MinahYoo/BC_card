@@ -323,7 +323,7 @@ def findings(h):
     return h
 
 
-TOC_ITEMS = [("overview", "요인 한눈에"), ("implications", "시사점"), ("conclusions", "핵심 결론"), ("ch1", "1장 필요한 요인"), ("ch2", "2장 지역 vs 업종"), ("ch3", "3장 BC 소비"),
+TOC_ITEMS = [("overview", "요인 중요도"), ("implications", "시사점"), ("conclusions", "핵심 결론"), ("ch1", "1장 필요한 요인"), ("ch2", "2장 지역 vs 업종"), ("ch3", "3장 BC 소비"),
              ("ch4", "4장 위험한 곳"), ("ch5", "5장 남은 패턴"), ("limits", "데이터·한계")]
 TOC = ('<nav class="toc" aria-label="이 탭의 섹션 바로가기">' + "".join(f'<a class="chip-b" href="#{i}" data-jump="{i}">{t}</a>' for i, t in TOC_ITEMS) + "</nav>")
 
@@ -358,7 +358,7 @@ def overview():
     a2, a3 = cols[1]["BC카드 고객 연령대"][2], cols[2]["BC카드 고객 연령대"][2]
     if a2 == "pos" and a3 == "muted":
         age_note = '<p class="how"><b>주의</b> BC카드 고객 연령대는 지역 간 순위에서는 유의하지만 같은 시군구 안에서는 아니에요. 원인이 아니라 “어떤 유형의 지역인가”를 알려 주는 신호로 읽어 주세요.</p>'
-    return ('<h2 id="overview">세 관점으로 본 요인 중요도 (한눈에)</h2>'
+    return ('<h2 id="overview">세 관점으로 본 요인 중요도</h2>'
             '<p class="plain">보는 관점에 따라 중요한 요인이 달라요. ★이 붙은 칸이 뚜렷하게 중요한 요인이에요.</p>'
             + how("숫자는 그 요인 묶음을 뺐을 때 예측이 얼마나 나빠지는지예요. 색은 각 열 안에서 큰 값일수록 진해요(★ 유의 청록, 회색 불확실, ▼ 주황 빼는 편이 나음). 요인 순서는 왼쪽 열의 값이 큰 순서로 고정했어요. 막대와 신뢰구간은 아래 각 장의 ‘통계 상세’에 있어요.")
             + f'<div class="scroll"><table class="ov"><thead><tr><th>요인 묶음</th>{th}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>' + age_note)
@@ -416,7 +416,7 @@ def step2(h):
     secs = _split_sections(h)
     k_find = _find(secs, "한눈에"); k1, k2, k3 = _find(secs, "1장."), _find(secs, "2장."), _find(secs, "3장.")
     k4, k5, k6, kl = _find(secs, "4장."), _find(secs, "5장."), _find(secs, "6장."), _find(secs, "데이터와 한계")
-    find = secs[k_find].replace("<h2>한눈에 보는 결론</h2>", "<h2>핵심 결론 (A~E)</h2>")
+    find = secs[k_find].replace("<h2>한눈에 보는 결론</h2>", "<h2>핵심 결론</h2>")
     s1 = _fold(secs[k1], "점포 하나를 가려낼 땐 영업연수·점포 규모·운영 특성·프랜차이즈가, 지역끼리 비교할 땐 지역 폐업 흐름과 영업연수가 중요했어요. BC카드 고객 연령대는 ‘어떤 유형의 지역인가’를 알려 주는 신호일 뿐 같은 지역 안의 원인은 아니었고, 같은 시군구 안에서 조합을 가르는 건 업종뿐이었어요.")
     s1 = s1.replace('<div class="cols">', COMMON_LEGEND + '<div class="cols">', 1)
     s2 = _fold(secs[k2], "위험은 업종보다 지역에서 더 크게 갈려요. 시군구만으로 설명한 정도가 업종만의 약 4배예요.")

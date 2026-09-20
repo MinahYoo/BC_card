@@ -164,7 +164,7 @@ __EXTRA__</style></head><body>
 
 <section class="tab on" id="t-map">
 <div class="hero"><h1>어느 지역·업종이 왜 위험한가</h1>
-<p>2026-01-01 영업 중이던 점포 __N__개를 180일 추적했어요. 색은 평균 점포 대비 폐업 위험(연관이며 인과 아님)이고, 버블을 누르면 이유를 볼 수 있어요.</p></div>
+<p>붉은 지역일수록 폐업 위험이 높고, 푸른 지역일수록 낮아요. 지역을 누르면 왜 그런지 이유를 볼 수 있어요.</p></div>
 <div class="guide" id="guide" hidden><ol><li>지도에서 지역을 누르거나 검색해요</li><li>색(폐업 위험도)과 요인 막대로 이유를 봐요</li><li>업종 버튼으로 업종별로 비교해요</li></ol><button type="button" class="chip-b" id="guideX" aria-label="가이드 닫기">닫기 ✕</button></div>
 <div class="toolbar">
 <span class="sugwrap"><input type="text" id="ask" placeholder="예) 동탄 서양음식 / 합천 한식 / 한식 위험한 곳" aria-label="지역·업종 질문" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug"><ul class="sug" id="sug" role="listbox" hidden></ul></span>

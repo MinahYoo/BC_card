@@ -1,1 +1,3 @@
 *.csv
+# 전처리가 읽는 수동 관리 목록이라 추적해야 한다
+!franchise_brands.csv

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-상권 생존 분석 웹사이트 site/index.html 을 만든다 (서버 없는 단일 HTML; GitHub Pages 등 정적 호스팅에 그대로 올릴 수 있다).
+상권 생존 지도 웹사이트 site/index.html 을 만든다 (서버 없는 단일 HTML; GitHub Pages 등 정적 호스팅에 그대로 올릴 수 있다).
 
 탭: 지도 탐색(시군구 버블 지도 · 업종 필터 · 위험 배수 · "왜" 요인 분해 · BC 구성/월별 · 이웃 5곳 · 규칙 기반 설명 입력창)
-    상권 분석(시군구 프로필 · 업종별 위험 순위 · 소비-폐업 산점도) / 생존 분석(리포트 본문)
+    상권 분석(시군구 프로필 · 업종별 위험 순위 · 소비-폐업 산점도) / 모형 근거(리포트 본문: 어떤 요인이 왜 폐업 위험을 가르는가)
 사전 조건: prep_site_data.py 실행(output/site_data.json). 생존 분석 탭은 build_report.py의 본문을 그대로 재사용한다.
 모든 수치는 분석 산출물에서 왔고, 설명 문장은 규칙으로 만든다(LLM 없음 -> 값이 틀리거나 지어질 수 없다).
 """
@@ -228,7 +228,7 @@ __EXTRA__</style></head><body>
 <div class="brand">상권 생존 지도<span>BC카드 소비데이터 공모전</span></div>
 <nav id="nav" role="tablist">
 <button data-t="map" aria-selected="true">지도 탐색<small>위험 지도로 보기</small></button><button data-t="area" aria-selected="false">상권 분석<small>업종·지역 비교</small></button>
-<button data-t="surv" aria-selected="false">생존 분석<small>얼마나 오래 버티나</small></button></nav>
+<button data-t="surv" aria-selected="false">모형 근거<small>왜 이렇게 예측했나</small></button></nav>
 </div></div>
 <main class="wide">
 
@@ -714,6 +714,7 @@ let cmpRestore=null;
 function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===t));document.querySelectorAll('section.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));history.replaceState(null,'','#'+t);window.scrollTo(0,0);if(t==='map')setTimeout(()=>map.invalidateSize(),50);}
 document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>tab(x.dataset.t)));
 if(location.hash&&$('#t-'+location.hash.slice(1)))tab(location.hash.slice(1));
+window.addEventListener('hashchange',()=>{const k=location.hash.slice(1);if($('#t-'+k)&&!$('#t-'+k).classList.contains('on'))tab(k);});   // 같은 문서에서 #surv 등으로 바꿔도 탭이 열린다
 renderLegend();renderHome();update();
 $('#btn-nat').addEventListener('click',clearSel);$('#btn-sudo').addEventListener('click',goSudo);
 const aq=new URLSearchParams(location.search).get('area');if(aq){$('#areaq').value=aq;areaShow();}

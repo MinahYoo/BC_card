@@ -34,11 +34,9 @@ select,input[type=text]{font:inherit;font-size:14px;padding:7px 10px;border:1px 
 input[type=text]{min-width:min(260px,100%);flex:1}
 .grid2{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
 @media (max-width:920px){.grid2{grid-template-columns:1fr}}
-.mapcard{position:relative;padding:8px} #map{width:100%;height:auto;display:block;border-radius:8px;background:color-mix(in srgb,var(--card) 92%,var(--line))}
-.bubble{stroke:rgba(0,0,0,.28);stroke-width:.6;cursor:pointer;transition:r .15s} .bubble:hover{stroke:var(--fg);stroke-width:1.6}
-.bubble.sel{stroke:var(--fg);stroke-width:2.4} .bubble.na{stroke-dasharray:2 2}
-.nblink{stroke:var(--fg);stroke-width:1;stroke-dasharray:3 3;opacity:.55}
-#tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);padding:6px 9px;border-radius:7px;font-size:12.5px;line-height:1.4;display:none;z-index:5;white-space:nowrap}
+.mapcard{position:relative;padding:8px;isolation:isolate} #map{width:100%;height:min(78vh,700px);min-height:440px;border-radius:8px;z-index:0}
+.leaflet-container{font:inherit;background:var(--card)} .leaflet-tile-pane{filter:grayscale(1) contrast(.88) brightness(1.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:grayscale(1) invert(1) contrast(.85) brightness(.85)}} .leaflet-tooltip{font-size:12.5px;line-height:1.4}
 .legend{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--sub);margin:8px 4px 2px}
 .legend .bar{height:10px;width:190px;border-radius:5px;background:linear-gradient(90deg,rgb(45,110,190),rgb(232,230,222),rgb(214,69,65))}
 .panel h3{margin:0 0 2px;font-size:20px} .panel .sub2{color:var(--sub);font-size:13.5px}
@@ -67,7 +65,8 @@ input[type=text]{min-width:min(260px,100%);flex:1}
 TEMPLATE = r"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>상권 생존 지도</title>
-<style>__CSS__
+<style>__LEAFLET_CSS__
+__CSS__
 __EXTRA__</style></head><body>
 <div id="err"></div>
 <div class="top"><div class="in">
@@ -88,8 +87,8 @@ __EXTRA__</style></head><body>
 <button class="chip-b" id="askbtn">설명 보기</button>
 </div>
 <div class="grid2">
-<div class="card mapcard"><svg id="map" viewBox="0 0 10 10" role="img" aria-label="시군구 버블 지도"></svg><div id="tip"></div><div id="zoom" style="position:absolute;right:14px;top:14px;display:flex;flex-direction:column;gap:4px"><button class="chip-b" data-z="1.5" aria-label="확대">＋</button><button class="chip-b" data-z="0.67" aria-label="축소">－</button><button class="chip-b" data-z="0" aria-label="초기화">↺</button></div>
-<div class="legend2"><span>안전</span><div class="bar" style="height:10px;width:170px;border-radius:5px;background:linear-gradient(90deg,rgb(45,110,190),rgb(232,230,222),rgb(214,69,65))"></div><span>위험</span></div><div class="hint" style="margin:2px 4px 4px">버블 크기 = 점포 수 · 점선 = 표본 30개 미만 · 제주·울릉은 위치를 조정해 표시 · 휠/버튼으로 확대·이동</div></div>
+<div class="card mapcard"><div id="map" role="region" aria-label="시군구 버블 지도"></div>
+<div class="legend2"><span>안전</span><div class="bar" style="height:10px;width:170px;border-radius:5px;background:linear-gradient(90deg,rgb(45,110,190),rgb(232,230,222),rgb(214,69,65))"></div><span>위험</span></div><div class="hint" style="margin:2px 4px 4px">버블 크기 = 점포 수 · 점선 회색 = 표본 30개 미만 · 시군구 내 점포 좌표의 중앙값에 표시 · 휠/＋－로 확대</div></div>
 <div class="card panel" id="panel"><p class="hint">지도의 버블을 누르거나 위 입력창에 지역과 업종을 적어 보세요.<br><br>“왜”는 Cox 모형(M3L)의 선형예측자를 요인별로 정확히 쪼갠 값입니다. 붉은 막대는 위험을 높이는 요인, 푸른 막대는 낮추는 요인이며, 요인들을 곱하면 위험 배수가 됩니다.</p></div>
 </div>
 </section>
@@ -115,13 +114,14 @@ __EXTRA__</style></head><body>
 <li><b>“왜” 분해:</b> 선형예측자를 요인별 기여 β·(x−평균)로 정확히 분해(오차 10⁻¹⁵). exp(기여) = 평균 점포 대비 배수, 요인 배수의 곱 = 위험 배수. <b>연관이며 인과가 아닙니다.</b></li>
 <li><b>검증:</b> 그룹 5-fold, 시군구 5-fold. 신뢰구간은 시군구 단위 부트스트랩. 미학습 그룹 점포 단위 C-index 0.637(0.5 = 무작위)로 중간 정도의 판별력입니다.</li>
 <li><b>BC 데이터의 한계:</b> 시군구×업종 평균이라 점포 매출이 아닙니다. 연령 구성은 같은 시군구 안에서 위험을 가르지 못했고 지역 유형 신호로 읽어야 합니다. 소비 규모·객단가·성장률은 예측을 개선하지 못했습니다(3장 표).</li>
-<li><b>지도:</b> 시군구 경계가 아니라 시군구 내 점포 좌표의 중앙값에 놓은 버블입니다. 2026년 개편 지역명을 그대로 씁니다. 그룹당 점포가 30개 미만이면 실제 폐업률이 불안정해 점선으로 표시합니다.</li>
+<li><b>지도:</b> 시군구 경계가 아니라 시군구 내 점포 좌표의 중앙값(EPSG:5174를 위·경도로 변환, 오차 수백 m)에 놓은 버블입니다. 배경 지도는 OpenStreetMap 타일(회색조)이며 인터넷 연결이 필요합니다(끊겨도 버블·패널은 동작). 2026년 개편 지역명을 그대로 씁니다. 그룹당 점포가 30개 미만이면 실제 폐업률이 불안정해 회색 점선으로 표시합니다.</li>
 <li><b>설명 문장:</b> 규칙으로 만든 문장이며 LLM을 쓰지 않습니다. 숫자는 모두 위 분해 결과에서 옵니다.</li>
 <li><b>주의:</b> 6개월 관측 창 하나, 프랜차이즈는 수작업 브랜드 목록 기반, 연령 코드 정의(1~6)는 원자료 명세로 재확인이 필요합니다. 배수는 정책 효과가 아닙니다.</li>
 </ul></div>
 </section>
 </main>
 
+<script>__LEAFLET_JS__</script>
 <script>
 window.onerror=function(m,s,l){var e=document.getElementById('err');e.style.display='block';e.textContent='JS 오류: '+m+' (줄 '+l+')';};
 const D=__DATA__;
@@ -148,53 +148,36 @@ function col(ratio){
 }
 const colorOf=v=>S.mode==='mult'?col(v.mult):col(v.rate/NAT.rate);
 
-// ---------- 지도 ----------
-// 제주·울릉은 본토에서 멀어 지도가 납작해지므로 위치를 조정해 표시한다(지도 하단 안내 참고).
-const isJeju=r=>r.sido.includes('제주'), isUll=r=>r.name==='울릉군';
-const mainland=D.regions.filter(r=>!isJeju(r)&&!isUll(r));
-const mainMaxX=Math.max(...mainland.map(r=>r.cx));
-D.regions.forEach(r=>{r.px0=isUll(r)?mainMaxX+22000:r.cx; r.py0=isJeju(r)?r.cy+70000:r.cy;});
-const xs=D.regions.map(r=>r.px0),ys=D.regions.map(r=>r.py0);
-const minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
-const PAD=26,W=560,sc=(W-2*PAD)/(maxx-minx),H=(maxy-miny)*sc+2*PAD;
-const px=r=>PAD+(r.px0-minx)*sc, py=r=>H-PAD-(r.py0-miny)*sc;
-const svg=$('#map'); svg.setAttribute('viewBox','0 0 '+W+' '+H);
-svg.innerHTML='<g id="lines"></g><g id="bub"></g>';
-const bub=$('#bub'), lines=$('#lines');
-const order=D.regions.map((r,i)=>i).sort((a,b)=>D.regions[b].n-D.regions[a].n);
-const NS='http://www.w3.org/2000/svg', circles={};
-order.forEach(i=>{const c=document.createElementNS(NS,'circle');c.setAttribute('class','bubble');c.setAttribute('cx',px(D.regions[i]).toFixed(1));c.setAttribute('cy',py(D.regions[i]).toFixed(1));
-  c.addEventListener('click',()=>{if(!moved)select(i);});c.addEventListener('mousemove',ev=>tip(ev,i));c.addEventListener('mouseleave',()=>{$('#tip').style.display='none';});bub.appendChild(c);circles[i]=c;});
-function tip(ev,i){
-  const v=val(i,S.biz),R=D.regions[i],t=$('#tip'),box=svg.parentElement.getBoundingClientRect();
-  t.innerHTML='<b>'+R.sido.replace(/특별시|광역시|특별자치도|특별자치시/,'')+' '+R.name+'</b>'+(S.biz>=0?' · '+BIZ[S.biz]:'')+'<br>'+(v?'위험 ×'+v.mult.toFixed(2)+' · 폐업률 '+pct(v.rate)+' · 점포 '+v.n.toLocaleString():'해당 업종 점포 없음');
-  t.style.display='block';t.style.left=Math.min(ev.clientX-box.left+12,box.width-230)+'px';t.style.top=(ev.clientY-box.top+12)+'px';
-}
-let VB={x:0,y:0,w:W,h:H},ZL=1; const ZF=()=>Math.pow(ZL,-0.55);
-function setVB(){svg.setAttribute('viewBox',VB.x.toFixed(1)+' '+VB.y.toFixed(1)+' '+VB.w.toFixed(1)+' '+VB.h.toFixed(1));}
-function zoomAt(f,cxp,cyp){const nz=Math.max(1,Math.min(8,ZL*f));f=nz/ZL;if(f===1)return;
-  const nx=cxp-(cxp-VB.x)/f,ny=cyp-(cyp-VB.y)/f;ZL=nz;VB={x:nx,y:ny,w:W/ZL,h:H/ZL};clampVB();setVB();update();}
-function clampVB(){VB.x=Math.max(0,Math.min(W-VB.w,VB.x));VB.y=Math.max(0,Math.min(H-VB.h,VB.y));}
-function svgPt(ev){const r=svg.getBoundingClientRect();return [VB.x+(ev.clientX-r.left)/r.width*VB.w,VB.y+(ev.clientY-r.top)/r.height*VB.h];}
-svg.addEventListener('wheel',ev=>{ev.preventDefault();const [a,b]=svgPt(ev);zoomAt(ev.deltaY<0?1.25:0.8,a,b);},{passive:false});
-let drag=null,moved=false;
-svg.addEventListener('pointerdown',ev=>{drag={x:ev.clientX,y:ev.clientY,vx:VB.x,vy:VB.y};moved=false;});
-window.addEventListener('pointermove',ev=>{if(!drag)return;const r=svg.getBoundingClientRect(),dx=ev.clientX-drag.x,dy=ev.clientY-drag.y;
-  if(Math.abs(dx)+Math.abs(dy)>4)moved=true; if(ZL>1&&moved){VB.x=drag.vx-dx/r.width*VB.w;VB.y=drag.vy-dy/r.height*VB.h;clampVB();setVB();}});
-window.addEventListener('pointerup',()=>{drag=null;});
-document.querySelectorAll('#zoom button').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.z;if(f==='0'){ZL=1;VB={x:0,y:0,w:W,h:H};setVB();update();}else zoomAt(+f,VB.x+VB.w/2,VB.y+VB.h/2);}));
+// ---------- 지도 (Leaflet + 배경 지도 타일) ----------
+// 배경 타일은 외부(CARTO/OpenStreetMap)에서 불러온다. 타일을 못 불러와도 버블과 패널은 그대로 동작한다.
+const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches&&document.documentElement.dataset.theme!=='light';
+const map=L.map('map',{minZoom:6,maxZoom:14,zoomSnap:0.5,preferCanvas:true,attributionControl:true});
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+map.fitBounds([[33.0,125.0],[38.7,130.8]]);
+const order=D.regions.map((r,i)=>i).sort((a,b)=>D.regions[b].n-D.regions[a].n);   // 큰 버블을 먼저 그려 작은 버블이 위에 오게 한다
+const markers={};
+const tipHtml=i=>{const v=val(i,S.biz),R=D.regions[i];
+  return '<b>'+R.sido.replace(/특별시|광역시|특별자치도|특별자치시/,'')+' '+R.name+'</b>'+(S.biz>=0?' · '+BIZ[S.biz]:'')+'<br>'+(v?'위험 ×'+v.mult.toFixed(2)+' · 폐업률 '+pct(v.rate)+' · 점포 '+v.n.toLocaleString():'해당 업종 점포 없음');};
+order.forEach(i=>{const R=D.regions[i];
+  const m=L.circleMarker([R.lat,R.lon],{radius:5,weight:.8,color:'rgba(0,0,0,.45)',fillOpacity:.86}).addTo(map);
+  m.on('click',()=>select(i)); m.bindTooltip(()=>tipHtml(i),{sticky:true,direction:'top',opacity:.95}); markers[i]=m;});
+const ZF=()=>Math.max(0.75,Math.min(3.2,Math.pow(1.28,map.getZoom()-7)));      // 확대할수록 버블을 키워 겹침을 줄인다
+const nbLayer=L.layerGroup().addTo(map);
 function update(){
-  order.forEach(i=>{const c=circles[i],v=val(i,S.biz);
-    if(!v){c.style.display='none';return;} c.style.display='';
-    const k=S.biz<0?0.055:0.09; c.setAttribute('r',((2.0+k*Math.sqrt(v.n))*ZF()).toFixed(1));
-    const small=S.biz>=0&&v.n<30;
-    c.style.fill=small?'rgba(150,150,150,.25)':colorOf(v); c.classList.toggle('na',small); c.classList.toggle('sel',i===S.sel);});
+  const zf=ZF();
+  order.forEach(i=>{const m=markers[i],v=val(i,S.biz);
+    if(!v){m.setStyle({opacity:0,fillOpacity:0,radius:0.1});return;}
+    const k=S.biz<0?0.055:0.09,small=S.biz>=0&&v.n<30,sel=i===S.sel;
+    m.setStyle({radius:(2.2+k*Math.sqrt(v.n))*zf,fillColor:small?'#9aa0a6':colorOf(v),fillOpacity:small?0.35:0.86,color:sel?'#111':'rgba(0,0,0,.45)',weight:sel?3:0.8,opacity:1,dashArray:small?'2 2':null});
+    if(sel)m.bringToFront();});
   drawLinks();
 }
+map.on('zoomend',update);
 function drawLinks(){
-  lines.innerHTML=''; if(S.sel===null) return; const a=D.regions[S.sel];
-  a.nb.forEach(j=>{const b=D.regions[j],l=document.createElementNS(NS,'line');l.setAttribute('class','nblink');
-    l.setAttribute('x1',px(a).toFixed(1));l.setAttribute('y1',py(a).toFixed(1));l.setAttribute('x2',px(b).toFixed(1));l.setAttribute('y2',py(b).toFixed(1));lines.appendChild(l);});
+  nbLayer.clearLayers(); if(S.sel===null) return; const a=D.regions[S.sel];
+  a.nb.forEach(j=>{const b=D.regions[j];L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:dark?'#ddd':'#222',weight:1.3,dashArray:'4 4',opacity:.75,interactive:false}).addTo(nbLayer);});
+  if(D.regions[S.sel]&&!map.getBounds().contains([a.lat,a.lon])) map.panTo([a.lat,a.lon]);
 }
 
 // ---------- 패널 ----------
@@ -340,7 +323,7 @@ RB.addEventListener('change',rank);rank();
 })();
 
 // ---------- 탭 ----------
-function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===t));document.querySelectorAll('section.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));history.replaceState(null,'','#'+t);window.scrollTo(0,0);}
+function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===t));document.querySelectorAll('section.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));history.replaceState(null,'','#'+t);window.scrollTo(0,0);if(t==='map')setTimeout(()=>map.invalidateSize(),50);}
 document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>tab(x.dataset.t)));
 if(location.hash&&$('#t-'+location.hash.slice(1)))tab(location.hash.slice(1));
 update();
@@ -348,7 +331,7 @@ const aq=new URLSearchParams(location.search).get('area');if(aq){$('#areaq').val
 const qs=new URLSearchParams(location.search).get('q');if(qs){$('#ask').value=qs;ask();}
 </script></body></html>"""
 
-html_out = (TEMPLATE.replace("__CSS__", css).replace("__EXTRA__", EXTRA_CSS).replace("__DATA__", data).replace("__SURV__", surv)
+html_out = (TEMPLATE.replace("__CSS__", css).replace("__EXTRA__", EXTRA_CSS).replace("__DATA__", data).replace("__SURV__", surv).replace("__LEAFLET_CSS__", Path("vendor/leaflet.css").read_text(encoding="utf-8")).replace("__LEAFLET_JS__", Path("vendor/leaflet.js").read_text(encoding="utf-8"))
             .replace("__N__", f"{nat['n']:,}").replace("__EV__", f"{nat['events']:,}").replace("__RATE__", f"{nat['rate'] * 100:.2f}")
             .replace("__RHO_ALL__", f"{R.rho_all:+.2f}").replace("__RHO_IN__", f"{R.rho_in:+.2f}"))
 for d in ("site", "docs"):             # site/는 로컬 확인용, docs/는 GitHub Pages(main 브랜치 /docs)용 — 내용 동일

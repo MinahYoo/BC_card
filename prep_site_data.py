@@ -30,6 +30,9 @@ del xy
 reg = reg.merge(cent, on=REGION_KEY, how="left")
 assert reg["cx"].notna().all(), "중심점이 없는 시군구가 있다"
 reg = reg.reset_index(drop=True)
+from pyproj import Transformer      # 좌표계 EPSG:5174(중부원점 Bessel) -> WGS84. 배경 지도(타일)에 올리기 위한 변환이며 오차는 시군구 규모에서 무시할 수준(수백 m)
+_lon, _lat = Transformer.from_crs("EPSG:5174", "EPSG:4326", always_xy=True).transform(reg["cx"].to_numpy(), reg["cy"].to_numpy())
+reg["lat"], reg["lon"] = _lat, _lon
 pts = reg[["cx", "cy"]].to_numpy(float)
 _, nn = cKDTree(pts).query(pts, k=6)
 reg["nb"] = [list(map(int, r[1:])) for r in nn]
@@ -71,7 +74,7 @@ for _, r in g.iterrows():
 regions = []
 for i, r in reg.iterrows():
     rb = rbiz[(rbiz["SIDO_NM"] == r["SIDO_NM"]) & (rbiz["CCG_NM"] == r["CCG_NM"])]
-    regions.append({"sido": r["SIDO_NM"], "name": r["CCG_NM"], "cx": round(float(r["cx"]), 0), "cy": round(float(r["cy"]), 0), "n": int(r["n"]),
+    regions.append({"sido": r["SIDO_NM"], "name": r["CCG_NM"], "cx": round(float(r["cx"]), 0), "cy": round(float(r["cy"]), 0), "lat": round(float(r["lat"]), 4), "lon": round(float(r["lon"]), 4), "n": int(r["n"]),
                     "rate": round(float(r["obs_rate"]), 4), "mult": round(float(r["상대위험_배수"]), 3), "x": [round(float(r[f"x_{b}"]), 3) for b in BLOCKS],
                     "age_yr": round(float(r["age_yr"]), 2), "fr": round(float(r["fr"]), 4), "nb": r["nb"],
                     "biz": {BIZ.index(b): [int(n), round(float(v), 4)] for b, n, v in zip(rb["bc_업종"], rb["n"], rb["rate"])}})

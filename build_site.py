@@ -83,13 +83,14 @@ __EXTRA__</style></head><body>
 <div class="ctrl" id="bizbar"></div>
 <div class="ctrl">
 <label class="hint">색 기준 <select id="mode"><option value="mult">위험 배수 (모형 M3L)</option><option value="rate">실제 폐업률 (전국 대비)</option></select></label>
-<input type="text" id="ask" placeholder="예) 동탄 서양음식 왜 위험해?  /  합천 한식  /  마포구 제과점" aria-label="지역·업종 질문">
+<input type="text" id="ask" placeholder="예) 동탄 서양음식 / 합천 한식 / 한식 위험한 곳" aria-label="지역·업종 질문">
 <button class="chip-b" id="askbtn">설명 보기</button>
 </div>
+<div class="hint" id="askhelp" style="margin:-4px 0 12px">질문 형식은 <b>지역 + 업종</b>, <b>지역만</b>, <b>업종 + 위험한/안전한 곳</b> 세 가지입니다(LLM이 아니라 정해진 형식만 이해합니다). 예시: <button class="chip-b" data-q="동탄 서양음식">동탄 서양음식</button> <button class="chip-b" data-q="합천 한식">합천 한식</button> <button class="chip-b" data-q="강남구">강남구</button> <button class="chip-b" data-q="한식 위험한 곳">한식 위험한 곳</button> <button class="chip-b" data-q="경남 한식 안전한 곳">경남 한식 안전한 곳</button></div>
 <div class="grid2">
 <div class="card mapcard"><div id="map" role="region" aria-label="시군구 버블 지도"></div>
-<div class="legend2"><span>안전</span><div class="bar" style="height:10px;width:170px;border-radius:5px;background:linear-gradient(90deg,rgb(45,110,190),rgb(232,230,222),rgb(214,69,65))"></div><span>위험</span></div><div class="hint" style="margin:2px 4px 4px">버블 크기 = 점포 수 · 점선 회색 = 표본 30개 미만 · 시군구 내 점포 좌표의 중앙값에 표시 · 휠/＋－로 확대</div></div>
-<div class="card panel" id="panel"><p class="hint">지도의 버블을 누르거나 위 입력창에 지역과 업종을 적어 보세요.<br><br>“왜”는 Cox 모형(M3L)의 선형예측자를 요인별로 정확히 쪼갠 값입니다. 붉은 막대는 위험을 높이는 요인, 푸른 막대는 낮추는 요인이며, 요인들을 곱하면 위험 배수가 됩니다.</p></div>
+<div class="legend2"><span>안전</span><div class="bar" style="height:10px;width:170px;border-radius:5px;background:linear-gradient(90deg,rgb(45,110,190),rgb(232,230,222),rgb(214,69,65))"></div><span>위험</span></div><div class="hint" id="tilenote" style="margin:2px 4px 0;color:var(--neg)"></div><div class="hint" style="margin:2px 4px 4px">버블 크기 = 점포 수 · 점선 회색 = 표본 30개 미만 · 시군구 내 점포 좌표의 중앙값에 표시 · 휠/＋－로 확대</div></div>
+<div class="card panel" id="panel"><p class="hint">지도의 버블을 누르거나 위 입력창에 <b>지역 + 업종</b>(예: 동탄 서양음식)을 적어 보세요. 형식은 입력창 아래에 있습니다.<br><br>“왜”는 Cox 모형(M3L)의 선형예측자를 요인별로 정확히 쪼갠 값입니다. 붉은 막대는 위험을 높이는 요인, 푸른 막대는 낮추는 요인이며, 요인들을 곱하면 위험 배수가 됩니다.</p></div>
 </div>
 </section>
 
@@ -152,8 +153,14 @@ const colorOf=v=>S.mode==='mult'?col(v.mult):col(v.rate/NAT.rate);
 // 배경 타일은 외부(CARTO/OpenStreetMap)에서 불러온다. 타일을 못 불러와도 버블과 패널은 그대로 동작한다.
 const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches&&document.documentElement.dataset.theme!=='light';
 const map=L.map('map',{minZoom:6,maxZoom:14,zoomSnap:0.5,preferCanvas:true,attributionControl:true});
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,
-  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
+const esri=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:15,attribution:'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors'});
+let terr=0,fb=false;const qtiles=new URLSearchParams(location.search).get('tiles');
+function tileNote(t){$('#tilenote').textContent=t;}
+osm.on('tileload',()=>{terr=0;});
+osm.on('tileerror',()=>{if(++terr>=3&&!fb){fb=true;map.removeLayer(osm);esri.addTo(map);tileNote('OpenStreetMap 타일을 불러오지 못해 대체 배경(Esri)을 쓰고 있습니다.');}});
+esri.on('tileerror',()=>{if(fb&&++terr>=6)tileNote('배경 지도를 불러오지 못했습니다(인터넷 연결이나 차단을 확인하세요). 버블은 좌표 기준으로 표시됩니다.');});
+(qtiles==='esri'?esri:osm).addTo(map);
 map.fitBounds([[33.0,125.0],[38.7,130.8]]);
 const order=D.regions.map((r,i)=>i).sort((a,b)=>D.regions[b].n-D.regions[a].n);   // 큰 버블을 먼저 그려 작은 버블이 위에 오게 한다
 const markers={};
@@ -264,24 +271,47 @@ function setBiz(b){S.biz=b;document.querySelectorAll('#bizbar .chip-b').forEach(
   bar.querySelectorAll('.chip-b').forEach(x=>x.addEventListener('click',()=>setBiz(+x.dataset.b)));})();
 $('#mode').addEventListener('change',e=>{S.mode=e.target.value;update();});
 
-// ---------- 규칙 기반 질문 ----------
+// ---------- 규칙 기반 질문 (LLM 아님: 정해진 형태만 이해한다) ----------
 const BIZKEY={'한식':0,'일식':1,'회집':1,'횟집':1,'중국':2,'중식':2,'서양':3,'양식':3,'스넥':4,'스낵':4,'분식':4,'제과':5,'빵':5,'베이커리':5,'편의점':6};
+const UNSUP=['치킨','카페','커피','피자','술집','호프','주점','고기','삼겹','미용','학원','약국','세탁'];
+const SIDOALIAS={'경남':'경상남도','경북':'경상북도','충남':'충청남도','충북':'충청북도','전남':'전라남도','전북':'전북특별자치도','강원':'강원특별자치도','제주':'제주특별자치도','세종':'세종특별자치시'};
+const SIDOS=[...new Set(D.regions.map(r=>r.sido))];
+const sidoOf=t=>SIDOALIAS[t]||SIDOS.find(x=>t.length>=2&&x.includes(t));
+const rname=i=>D.regions[i].sido.replace(/특별시|광역시|특별자치도|특별자치시/,'')+' '+D.regions[i].name;
+function say(html){$('#panel').innerHTML=html;$('#panel').querySelectorAll('[data-r]').forEach(x=>x.addEventListener('click',()=>{if(x.dataset.b!==undefined)setBizQuiet(+x.dataset.b);select(+x.dataset.r);}));}
+const HELP='<div class="hint"><b>이렇게 물어보세요</b><ul style="margin:6px 0 0 18px;padding:0"><li><b>지역 + 업종</b> — 동탄 서양음식 · 합천 한식 · 마포구 제과점</li><li><b>지역만</b> — 강남구 (전체 업종 요약과 업종별 표)</li><li><b>순위</b> — 한식 위험한 곳 · 서울 제과점 안전한 곳 · 경남 한식 위험한 곳</li></ul>'+
+ '<p style="margin:8px 0 0">지역은 시군구 이름의 일부만 써도 됩니다(동탄, 합천). 업종은 한식·일식·중식·서양(양식)·스낵(분식)·제과점(빵)·편의점 7개만 있습니다. 카페·치킨 등 다른 업종, 두 지역 비교, 시점별 추세, 예측 질문은 지원하지 않습니다. “왜”는 지역+업종을 고르면 나오는 요인 분해가 답입니다.</p></div>';
 function ask(){
   const q=$('#ask').value.replace(/\s+/g,' ').trim(); if(!q) return;
+  const esc=q.replace(/</g,'&lt;');
+  if(UNSUP.some(k=>q.includes(k))){say('<p>“'+esc+'”: 이 사이트는 7개 업종(한식·일식·중식·서양음식·스낵·제과점·편의점)만 다룹니다.</p>'+HELP);return;}
   let b=-1;for(const k in BIZKEY){if(q.includes(k)){b=BIZKEY[k];break;}}
-  const toks=q.split(/[ ,?]+/).filter(t=>t.length>=2&&!Object.keys(BIZKEY).some(k=>t.includes(k))&&!/(왜|위험|해줘|알려|어때|설명)/.test(t));
+  const intent=/(위험한|위험 ?높|폐업 ?많|많이 ?망|취약)/.test(q)?'hi':(/(안전|위험 ?낮|덜 ?망|안정)/.test(q)?'lo':null);
+  const toks=q.split(/[ ,?]+/).filter(t=>t.length>=2&&!Object.keys(BIZKEY).some(k=>t.includes(k))&&!/(왜|위험|해줘|알려|어때|설명|곳|안전|폐업|많이|제일|가장)/.test(t));
+  if(intent){ // 순위 질문: 업종(선택) + 시도(선택)
+    let sido=null;for(const t of toks){const x=sidoOf(t);if(x){sido=x;break;}}
+    let rows;
+    if(b>=0) rows=D.groups.filter(g=>g.b===b&&g.n>=300&&(!sido||D.regions[g.r].sido===sido)).map(g=>({r:g.r,m:g.mult,rate:g.rate,n:g.n}));
+    else rows=D.regions.map((R,i)=>({r:i,m:R.mult,rate:R.rate,n:R.n})).filter(x=>x.n>=2000&&(!sido||D.regions[x.r].sido===sido));
+    rows.sort((x,y)=>intent==='hi'?y.m-x.m:x.m-y.m); rows=rows.slice(0,8);
+    if(!rows.length){say('<p>조건에 맞는 지역이 없습니다(점포 수가 충분한 곳만 순위에 넣습니다).</p>'+HELP);return;}
+    setBizQuiet(b);S.sel=null;update();
+    say('<h3>'+(sido?sido.replace(/특별시|광역시|특별자치도|특별자치시/,'')+' ':'전국 ')+(b>=0?BIZ[b]:'전체 업종')+' — 위험이 '+(intent==='hi'?'높은':'낮은')+' 곳 상위 '+rows.length+'</h3><p class="hint">점포 '+(b>=0?300:2000)+'개 이상인 곳만 순위에 넣었습니다. 누르면 설명이 열립니다.</p><div class="nb" style="flex-direction:column;align-items:stretch">'+
+      rows.map(x=>'<button data-r="'+x.r+'" data-b="'+b+'" style="text-align:left">'+rname(x.r)+' · <b style="color:'+(x.m>=1?'var(--neg)':'var(--pos)')+'">×'+x.m.toFixed(2)+'</b> · 폐업률 '+pct(x.rate)+' · 점포 '+x.n.toLocaleString()+'</button>').join('')+'</div>');
+    return;
+  }
   let cand=[];
   for(const t of toks){const t2=t.replace(/(시|군|구)$/,'');
     cand=D.regions.map((r,i)=>i).filter(i=>{const full=D.regions[i].sido+' '+D.regions[i].name;return full.includes(t)||(t2.length>=2&&full.includes(t2));});
     if(cand.length) break;}
-  if(!cand.length){$('#panel').innerHTML='<p>“'+q.replace(/</g,'')+'”에서 시군구를 찾지 못했습니다. 예: <i>동탄 서양음식</i>, <i>합천 한식</i>, <i>마포구 제과점</i>.</p>';return;}
+  if(!cand.length){say('<p>“'+esc+'”에서 시군구를 찾지 못했습니다.</p>'+HELP);return;}
   setBizQuiet(b);
-  if(cand.length>1){$('#panel').innerHTML='<p>여러 시군구가 맞습니다. 선택해 주세요.</p><div class="nb">'+cand.slice(0,12).map(i=>'<button data-r="'+i+'">'+D.regions[i].sido+' '+D.regions[i].name+'</button>').join('')+'</div>';
-    $('#panel').querySelectorAll('.nb button').forEach(x=>x.addEventListener('click',()=>select(+x.dataset.r)));S.sel=null;update();return;}
+  if(cand.length>1){S.sel=null;update();say('<p>여러 시군구가 맞습니다. 선택해 주세요.</p><div class="nb">'+cand.slice(0,14).map(i=>'<button data-r="'+i+'">'+D.regions[i].sido+' '+D.regions[i].name+'</button>').join('')+'</div>');return;}
   select(cand[0]);
 }
 function setBizQuiet(b){S.biz=b;document.querySelectorAll('#bizbar .chip-b').forEach(x=>x.classList.toggle('on',+x.dataset.b===b));}
 $('#askbtn').addEventListener('click',ask);$('#ask').addEventListener('keydown',e=>{if(e.key==='Enter')ask();});
+document.querySelectorAll('#askhelp [data-q]').forEach(x=>x.addEventListener('click',()=>{$('#ask').value=x.dataset.q;ask();}));
 
 // ---------- 상권 분석 ----------
 const RL=$('#rlist');D.regions.forEach((r,i)=>{const o=document.createElement('option');o.value=r.sido+' '+r.name;RL.appendChild(o);});

@@ -276,6 +276,55 @@ def implications(sec):
     return "".join(out)
 
 
+def _move_cap(h, marker, conclusion=None):
+    """차트 카드 맨 아래의 해석 문장(<p class="cap">)을 제목 바로 아래로 올려 첫 문장을 굵게 만든다(내용은 그대로)."""
+    i = h.index(marker)
+    j = h.index("</h3>", i) + 5
+    k = h.index('<p class="cap">', j)
+    assert '<div class="card"' not in h[j:k], f"다른 카드로 넘어감: {marker}"
+    e = h.index("</p>", k) + 4
+    if conclusion is None:
+        text = h[k + len('<p class="cap">'):e - 4]
+        first, *rest = re.split(r"(?<=\.)\s+", text, maxsplit=1)
+        c = f'<p class="concl"><b>{first}</b>{(" " + rest[0]) if rest else ""}</p>'
+        h = h[:k] + h[e:]                        # 원래 자리(카드 맨 아래)에서는 뺀다
+    else:
+        c = f'<p class="concl"><b>{conclusion}</b></p>'    # 주의 문장(cap)은 그대로 아래에 둔다
+    return h[:j] + c + h[j:]
+
+
+KEYNUMS = {   # 결론 카드의 핵심 숫자 1개 — 값은 모두 원문 문장에 있는 것만 쓴다(assert로 확인)
+    "A": ("약 4배", ["약 4배"], "시군구만으로 설명한 정도 ÷ 업종만 (조정 R² 0.44 vs 0.12)"),
+    "B": ("4.30% vs 3.30%", ["4.30%", "3.30%"], "소비 상위 vs 하위 구간의 실제 폐업률"),
+    "C": ("+0.007", ["+0.007"], "같은 시군구 안에서 연령대의 순위 개선 효과 (신뢰구간이 0을 포함)"),
+    "D": ("0.013", ["0.013"], "영업연수를 빼면 점포 판별력(C-index)이 떨어지는 정도"),
+    "E": ("0.157 → 0.023", ["0.157", "0.023"], "이웃끼리 닮은 패턴(Moran’s I) 넣기 전 → 후"),
+}
+
+
+def findings(h):
+    pat = re.compile(r'<div class="finding"><div class="n">([A-E])</div><div><h4>(.*?)</h4>\s*<p>(.*?)</p></div></div>', re.S)
+
+    def one(m):
+        L, head, body = m.groups()
+        big, must, label = KEYNUMS[L]
+        plain = re.sub(r"<[^>]+>", "", body)
+        for t in must:
+            assert t in plain, f"결론 {L}: 원문에 {t} 없음"
+        head = head.replace("남은 공간 구조는", "이웃 지역끼리 닮은 패턴은")
+        return (f'<div class="finding"><div class="n">{L}</div><div><h4>{head}</h4>'
+                f'<div class="stat-number"><b class="num">{big}</b><span class="lbl">{label}</span></div>'
+                f'<details class="tech"><summary>통계 용어로 보기</summary><p>{body}</p></details></div></div>')
+    h, n = pat.subn(one, h)
+    assert n == 5, f"결론 카드 수: {n}"
+    return h
+
+
+TOC_ITEMS = [("implications", "시사점"), ("conclusions", "핵심 결론"), ("ch1", "1장 필요한 요인"), ("ch2", "2장 지역 vs 업종"), ("ch3", "3장 BC 소비"),
+             ("ch4", "4장 위험한 곳"), ("ch5", "5장 남은 패턴"), ("limits", "데이터·한계")]
+TOC = ('<nav class="toc" aria-label="이 탭의 섹션 바로가기">' + "".join(f'<a class="chip-b" href="#{i}" data-jump="{i}">{t}</a>' for i, t in TOC_ITEMS) + "</nav>")
+
+
 def step2(h):
     # 차트·표 제목의 용어 풀이 + “읽는 법”
     dc = tip("ΔC-index", "Δ(델타)는 ‘변화량’이에요. 어떤 요인 묶음을 뺐을 때 점포 단위 판별력(C-index)이 얼마나 떨어지는지예요. 클수록 그 묶음이 중요해요.")
@@ -307,6 +356,11 @@ def step2(h):
              '<div class="note" style="margin:10px 0 0"><b>지도의 결과 카드에는 왜 “BC카드 고객 성별” 막대가 나오나요?</b> 최종 모형에는 성별 구성이 들어 있어 값이 표시돼요. 다만 같은 시군구 안에서 조합을 가르는 데는 빼는 편이 오히려 나았어요(위 ▼ 표시 막대). 그래서 참고용으로 봐 주세요.</div></div>')
     h = _rep(h, "3장 표에 그대로 실었습니다", "3장의 통계 상세 표에 그대로 실었습니다")
 
+    # 차트 카드: 해석 문장을 제목 아래로(굵게) — 제목 → 결론 → 읽는 법 → 차트
+    for marker in ("점포 단위 판별력 하락", "지역 간 순위 하락", "같은 시군구 안 순위 하락", "점포당 소비(1월", "객단가(1월", "이웃끼리 닮은 패턴이 남은 정도"):
+        h = _move_cap(h, marker)
+    h = _move_cap(h, "폐업률 차이를 설명하는 정도", conclusion="시군구만으로 설명한 정도(0.44)가 업종만(0.12)보다 훨씬 커요.")
+    h = findings(h)
     secs = _split_sections(h)
     k_find = _find(secs, "한눈에"); k1, k2, k3 = _find(secs, "1장."), _find(secs, "2장."), _find(secs, "3장.")
     k4, k5, k6, kl = _find(secs, "4장."), _find(secs, "5장."), _find(secs, "6장."), _find(secs, "데이터와 한계")
@@ -327,7 +381,10 @@ def step2(h):
     s5 = (m5.group(1) + '<p class="plain">이웃 지역의 폐업 흐름을 모형에 넣으니, 모형이 놓치던 ‘이웃끼리 닮은 패턴’이 사라졌어요.</p>'
           f'<details class="stat"><summary>통계 상세 (심사·연구자용)</summary><div class="statbody">{m5.group(2)}</div></details>' + s5[m5.end():])
     lim = secs[kl] + CODE_TABLE
-    return SUMMARY + implications(secs[k6]) + find + s1 + s2 + s3 + secs[k4] + s5 + lim
+    body = SUMMARY + TOC + implications(secs[k6]) + find + s1 + s2 + s3 + secs[k4] + s5 + lim
+    for hid, pre in (("conclusions", "<h2>핵심 결론"), ("ch1", "<h2>1장."), ("ch2", "<h2>2장."), ("ch3", "<h2>3장."), ("ch4", "<h2>4장."), ("ch5", "<h2>5장."), ("limits", "<h2>데이터와 한계")):
+        body = _rep(body, pre, pre.replace("<h2>", f'<h2 id="{hid}">'))
+    return body
 
 
 CODE_TABLE = (

@@ -140,6 +140,16 @@ details.stat[open]>summary{border-bottom:1px solid var(--line)}
 .imp dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:var(--fs-sm)}
 .imp dt{font-weight:700;color:var(--acc);white-space:nowrap}.imp dd{margin:0}
 .lgbox{margin:0 0 12px}
+.concl{margin:2px 0 6px;font-size:var(--fs-md)}
+.stat-number{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:2px 0 6px}
+.stat-number .num{font-size:28px;line-height:1.2;color:var(--acc);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat-number .lbl{color:var(--sub);font-size:var(--fs-sm)}
+details.tech{margin-top:2px}details.tech>summary{cursor:pointer;color:var(--acc);font-size:var(--fs-sm);font-weight:600}
+details.tech>p{margin:6px 0 0;color:var(--sub);font-size:var(--fs-sm)}
+.toc{position:sticky;top:var(--head-h);z-index:15;display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding:8px 0;margin:6px 0 4px;background:var(--bg);border-bottom:1px solid var(--line)}
+.toc a.chip-b{text-decoration:none;flex:none}.toc a.chip-b.on{background:var(--acc);color:var(--acc-fg);border-color:var(--acc)}
+#t-surv h2{scroll-margin-top:calc(var(--head-h) + 64px)}
+@media (max-width:767px){.toc{top:0}#t-surv h2{scroll-margin-top:64px}}
 .hbaxis .ax{position:relative;height:26px;margin-top:2px}
 .hbaxis .tk{position:absolute;top:-4px;height:5px;border-left:1px solid var(--sub)}
 .hbaxis .lb{position:absolute;top:3px;transform:translateX(-50%);font-size:var(--fs-sm);color:var(--sub);white-space:nowrap}
@@ -692,6 +702,12 @@ let cmpRestore=null;
   cmpRestore=(a,b,bz)=>{$('#cmpA').value=a;$('#cmpB').value=b;$('#cmpBiz').value=String(bz);show();};
   ['cmpA','cmpB'].forEach(id=>{$('#'+id).addEventListener('change',show);$('#'+id).addEventListener('input',()=>{if(find($('#'+id).value)>=0)show();});});
   $('#cmpBiz').addEventListener('change',show);
+})();
+
+(function(){ // 생존 분석 탭 상단 목차: 지금 보는 섹션 칩을 강조
+  const chips=[...document.querySelectorAll('.toc a')],hs=chips.map(a=>document.getElementById(a.dataset.jump));
+  function upd(){if(!$('#t-surv').classList.contains('on'))return;let cur=-1;hs.forEach((h,i)=>{if(h&&h.getBoundingClientRect().top<210)cur=i;});chips.forEach((a,i)=>a.classList.toggle('on',i===cur));}
+  window.addEventListener('scroll',upd,{passive:true});
 })();
 
 // ---------- 탭 ----------

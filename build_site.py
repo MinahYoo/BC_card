@@ -162,6 +162,19 @@ details.stat[open]>summary{border-bottom:1px solid var(--line)}
 .imp dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:var(--fs-sm)}
 .imp dt{font-weight:700;color:var(--acc);white-space:nowrap}.imp dd{margin:0}
 .lgbox{margin:0 0 12px}
+/* 지도 결과 카드: 수준 → 상대 위험(모델 계산) / 실제 폐업률(관측) → 왜 */
+.lvl{display:flex;align-items:center;gap:var(--s2);margin:var(--s2) 0}.lvl-k{font-size:var(--fs-sm);color:var(--sub)}
+.lvl b{padding:2px 14px;border-radius:999px;font-size:var(--fs-md)}
+.lv-hi b{background:var(--hi-soft);color:var(--hi-text)}.lv-lo b{background:var(--lo-soft);color:var(--lo-text)}.lv-mid b{background:var(--line);color:var(--fg)}
+.metric{margin:var(--s2) 0;padding:var(--s2) var(--s3);border-left:4px solid var(--line)}
+.metric.mod{border-left-color:var(--accent);background:var(--accent-tint);border-radius:0 var(--r-sm) var(--r-sm) 0}
+.metric .mk{font-size:var(--fs-sm);color:var(--sub);font-weight:600}.metric .bench{margin:2px 0 0;font-size:var(--fs-sm);color:var(--sub)}
+.metric.obs .obsv{font-size:var(--fs-xl);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.3}
+.src{display:inline-block;margin-left:6px;padding:0 8px;border:1px solid var(--sub);border-radius:999px;font-size:var(--fs-sm);font-weight:600;color:var(--sub);background:var(--card);vertical-align:1px}
+.metric.mod .src{border-color:var(--accent);color:var(--accent-strong)}
+ol.whyl{list-style:none;margin:var(--s1) 0 0;padding:0}ol.whyl li{display:flex;gap:var(--s2);margin:6px 0;font-size:var(--fs-md)}ol.whyl .no{color:var(--accent);font-weight:700;flex:none}
+ul.refl{margin:0;padding-left:20px;font-size:var(--fs-sm);color:var(--sub)}ul.refl li{margin:3px 0}
+.dirs{margin:6px 0 0}
 /* 쉬운 이름 먼저 · 전문 용어는 작게 병기 */
 .tn{font-size:var(--fs-sm);font-weight:400;color:var(--sub);letter-spacing:0}
 .techsub{margin:2px 0 0;font-size:var(--fs-sm);color:var(--sub)}
@@ -235,7 +248,7 @@ details.tech>p{margin:6px 0 0;color:var(--sub);font-size:var(--fs-sm)}
 @media (max-width:520px){.hbaxis>div:first-child,.hbaxis>div:last-child{display:none}.hbaxis .ax{grid-column:1/3;grid-row:auto}}
 .hbrow.hl{outline:2px solid var(--acc);outline-offset:3px;border-radius:6px;animation:hlp 2.4s ease-out}
 @keyframes hlp{0%{background:var(--acc-soft)}100%{background:transparent}}
-.lgd{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:var(--fs-sm);color:var(--sub);margin:0 0 6px}.lgd .lgi{white-space:nowrap}
+.lgd{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:var(--fs-sm);color:var(--sub);margin:0 0 6px}.lgd .lgi{white-space:nowrap}@media (max-width:767px){.lgd .lgi{white-space:normal}}
 .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px}
 .sw.pos{background:var(--acc)}.sw.muted{background:var(--flat)}.sw.neg{background:#b45309}
 table.grp{min-width:780px}
@@ -339,8 +352,8 @@ __EXTRA__</style></head><body>
 <div class="band alt"><p class="eyebrow">BY INDUSTRY</p><h2>업종별 위험 순위 (점포 300개 이상 조합) <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h2>
 <div class="ctrl"><select id="rankbiz"></select></div>
 <div class="cols3"><div class="card" id="rk-hi"></div><div class="card" id="rk-lo"></div></div></div>
-<div class="band"><p class="eyebrow">CONSUMPTION</p><h2>소비가 많으면 버티는가? — 점포당 소비와 실제 폐업률 <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h2>
-<div class="card"><div id="scat"></div><p class="cap">점 하나 = 시군구×업종 조합(점포 100개 이상), 굵은 선 = 소비 10분위별 실제 폐업률. 소비 하위 구간의 폐업률이 가장 낮고 중·상위에서는 비슷한 수준으로 이어집니다 — 소비가 높다고 덜 폐업하지 않습니다. 업종 안 소비 순위와 폐업률의 순위상관은 전체 __RHO_ALL__, 같은 시군구 안에서는 __RHO_IN__(관계 없음)입니다.</p></div></div>
+<div class="band"><p class="eyebrow">CONSUMPTION</p><h2>매출이 큰 상권이 더 안정적일까? — 점포당 소비와 실제 폐업률 <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h2>
+<div class="card"><div id="scat"></div><p class="cap">점 하나 = 시군구×업종 조합(점포 100개 이상), 굵은 선 = 소비 10분위별 실제 폐업률. 소비 하위 구간의 폐업률이 가장 낮고 중·상위에서는 비슷한 수준으로 이어져요. 소비가 높다고 폐업이 반드시 적은 것은 아니에요(관찰된 관계일 뿐 원인은 아니에요). 업종 안 소비 순위와 폐업률 순위의 일치도(순위상관)는 전체 __RHO_ALL__, 같은 시군구 안에서는 __RHO_IN__(관계가 보이지 않아요)이에요.</p></div></div>
 </section>
 
 <section class="tab" id="t-surv">__SURV__</section>
@@ -385,8 +398,8 @@ function makeSortable(t){   // th[data-k]를 누르면 tbody 행의 data-<k> 값
 }
 const DELTA=m=>{const pc=Math.round(Math.abs(m-1)*100);return pc===0?'평균 점포와 비슷함':(m>=1?'▲ 평균 점포보다 '+pc+'% 높음':'▼ 평균 점포보다 '+pc+'% 낮음');};
 const TIP_MIN='__TIP_MIN__';
-const TIP_RISK='같은 조건(영업연수·규모 등)을 맞춘 뒤 평균 점포와 비교한 폐업 위험의 배수예요. ×1.0이 평균, ×1.5면 평균보다 50% 높다는 뜻이에요. 연관일 뿐 원인은 아니에요.';
-const NOTE_RATE='폐업률은 단순 비율이고, 상대 폐업 위험은 영업연수·규모 등을 통제한 뒤 평균 점포와 비교한 값이라 순위가 다를 수 있어요.';
+const TIP_RISK='영업연수·규모 등을 맞춘 뒤, 평균 점포(×1.0)와 비교해 폐업 위험이 몇 배인지 모델이 계산한 값이에요. 폐업 확률 자체가 아니에요. ×1.5면 평균보다 50% 높다는 뜻이며, 연관일 뿐 원인은 아니에요.';
+const NOTE_RATE='실제 폐업률은 관측된 단순 비율이고, 상대 폐업 위험은 영업연수·규모 등을 통제한 뒤 모델이 평균 점포와 비교해 계산한 값이라 순위가 다를 수 있어요.';
 const GI=new Map(); D.groups.forEach((g,i)=>GI.set(g.r*10+g.b,i));
 const S={biz:-1,mode:'mult',sel:null,home:true,lastQ:null};
 const AGE=['연령1','연령2','연령3','연령4','연령5','연령6'], GEN=['남','여','법인'];
@@ -518,14 +531,19 @@ function spark(amt){
   D.months.forEach((m,i)=>{s+='<text x="'+X(i).toFixed(1)+'" y="'+(Ht+10)+'" text-anchor="middle" font-size="10" fill="var(--sub)">'+String(m).slice(4)+'월</text>';});
   return s+'</svg><p class="hint" style="margin:0">월별 BC 소비액(백만원) '+mn.toLocaleString()+' ~ '+mxv.toLocaleString()+'</p>';
 }
-function explain(r,b){
+const LEVEL=m=>m>=1.10?{k:'hi',t:'높음',a:'▲'}:(m<=0.90?{k:'lo',t:'낮음',a:'▼'}:{k:'mid',t:'평균 수준',a:'－'});   // 표시용 구분(통계 판정 아님): 평균(×1.0) 대비 ±10%
+const TIP_LEVEL='평균 점포(×1.0)와 비교해 10% 이상 높으면 ‘높음’, 10% 이상 낮으면 ‘낮음’, 그 사이는 ‘평균 수준’으로 나눈 표시용 구분이에요. 통계적으로 판정한 것은 아니에요.';
+const UNITJ={store:['점포','한 개의 가게를 하나의 관측치로 분석했어요.'],grp:['지역 × 업종','같은 지역과 같은 업종에 속한 점포들을 묶어 분석했어요.'],sgg:['시군구','지역 전체의 특성을 비교했어요.']};
+const ubadgeJ=k=>'<span class="ubadge hasq">분석 단위 · '+UNITJ[k][0]+qtip(UNITJ[k][1])+'</span>';
+const SRC_OBS='<span class="src obs">실제 관측</span>', SRC_MOD='<span class="src mod">모델 계산</span>';
+function whyBlock(r,b){   // 왜 이런 결과가 나왔나요? — 원인(요인)을 ①②③ 문장으로. 값은 기존 요인 배수 그대로
   const v=val(r,b),R=D.regions[r]; if(!v) return '';
-  const nm=R.sido.replace(/특별시|광역시|특별자치도|특별자치시/,'')+' '+R.name+(b>=0?' '+BIZ[b]:' 전체');
-  const f=factors(v.x),g=v.g,a=g?g.age_yr:R.age_yr,fr=g?g.fr:R.fr;
-  const ageF=f.find(d=>d.key==='age'), core=f.filter(d=>d.key!=='age');
-  const up=core.filter(d=>d.m>=1.03).sort((x,y)=>y.m-x.m).slice(0,3), dn=core.filter(d=>d.m<=0.97).sort((x,y)=>x.m-y.m).slice(0,3);
-  const pc=Math.round(Math.abs(v.mult-1)*100);
-  const phrase=(d,isUp)=>{   // 요인별 한 문장(마침표로 끝난다). 배수 칩은 문장 뒤에 붙인다
+  const f=factors(v.x),g=v.g,a=g?g.age_yr:R.age_yr,fr=g?g.fr:R.fr,lv=LEVEL(v.mult);
+  const core=f.filter(d=>d.key!=='age');
+  const ups=core.filter(d=>d.m>=1.03).sort((x,y)=>y.m-x.m), dns=core.filter(d=>d.m<=0.97).sort((x,y)=>x.m-y.m);
+  const pick=lv.k==='hi'?ups:(lv.k==='lo'?dns:core.filter(d=>d.m>=1.03||d.m<=0.97).sort((x,y)=>Math.abs(Math.log(y.m))-Math.abs(Math.log(x.m)))), top=pick.slice(0,3);
+  const head=lv.k==='hi'?'왜 위험이 높은가요?':(lv.k==='lo'?'왜 위험이 낮은가요?':'어떤 요인이 작용했나요?');
+  const phrase=(d,isUp)=>{   // 요인별 한 문장(현재 수준을 말하며, 증가·감소 같은 추세는 말하지 않는다)
     switch(d.key){
       case 'yrs': return (isUp?'영업 기간이 짧은 점포가 많아요':'오래 영업한 점포가 많아요')+'(평균 '+a.toFixed(1)+'년, 전국 '+NAT.age_yr.toFixed(1)+'년).';
       case 'fr': return '프랜차이즈 비중이 '+(isUp?'낮아요':'높아요')+'('+pct(fr)+', 전국 '+pct(NAT.fr)+').';
@@ -535,17 +553,17 @@ function explain(r,b){
       case 'biz': return '업종 자체의 기본 위험이 평균보다 '+(isUp?'높아요.':'낮아요.');
       default: return '입지 등 기타 요인이 '+(isUp?'위험한':'안정적인')+' 쪽이에요.';
     }};
-  const chip=(d,isUp)=>' <span class="tag '+(isUp?'hi':'lo')+'">'+(isUp?'▲':'▼')+' ×'+d.m.toFixed(2)+'</span>';
-  const li=(k,body)=>'<li><b class="k">'+k+'</b>'+body+'</li>', sub=a=>'<ul class="subl">'+a.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
-  let t='<ul class="exp">'+li('요약','<b>'+nm+'</b>는 평균 점포보다 폐업 위험이 '+(pc===0?'비슷한 수준':'약 <b>'+pc+'% '+(v.mult>=1?'높은':'낮은')+'</b> 수준')+'으로 추정돼요. 실제 폐업률은 '+pct(v.rate)+'(전국 '+pct(NAT.rate)+', 점포 '+v.n.toLocaleString()+'개)예요.');
-  t+=li('위험을 높이는 요인',up.length?sub(up.map(d=>phrase(d,true)+chip(d,true))):'<span class="hint">뚜렷하게 위험을 높이는 요인은 없어요(±3% 이내).</span>');
-  if(dn.length) t+=li('위험을 낮추는 요인',sub(dn.map(d=>phrase(d,false)+chip(d,false))));
-  const ref=[];
+  const chip=(d,isUp)=>' <span class="tag '+(isUp?'hi':'lo')+'">'+(isUp?'▲':'▼')+' ×'+d.m.toFixed(2)+'</span>', NUM=['①','②','③'];
+  return '<div class="blk why"><h4>'+head+'</h4>'+(top.length?'<ol class="whyl">'+top.map((d,i)=>'<li><span class="no">'+NUM[i]+'</span><span>'+phrase(d,d.m>=1)+chip(d,d.m>=1)+'</span></li>').join('')+'</ol>':'<p class="hint" style="margin:0">뚜렷하게 작용한 요인이 없어요(모두 ±3% 이내).</p>')+'</div>';
+}
+function refBlock(r,b){   // 참고: 이웃 평균, 연령대 참고 요인, 해석의 한계
+  const v=val(r,b),R=D.regions[r]; if(!v) return '';
+  const f=factors(v.x),ageF=f.find(d=>d.key==='age'),ref=[];
   const nbm=R.nb.map(j=>val(j,b)).filter(Boolean).map(z=>z.mult);
   if(nbm.length) ref.push('가까운 이웃 '+nbm.length+'곳의 평균 상대 폐업 위험은 ×'+(nbm.reduce((x,y)=>x+y,0)/nbm.length).toFixed(2)+'예요.');
-  if(ageF&&Math.abs(Math.log(ageF.m))>=0.03) ref.push('고객 연령대(×'+ageF.m.toFixed(2)+')는 '+(ageF.m>=1?'위험이 높은':'위험이 낮은')+' 지역 유형과 닮았다는 신호일 뿐이라 위 요인에서 뺐어요.');
-  ref.push('평균 점포와의 통계적 연관이며 원인이나 정책 효과는 아니에요.'+(v.n<30?' 이 조합은 점포가 30개 미만이라 실제 폐업률이 불안정해요.':''));
-  return t+li('참고',sub(ref))+'</ul>';
+  if(ageF&&Math.abs(Math.log(ageF.m))>=0.03) ref.push('고객 연령대(×'+ageF.m.toFixed(2)+')는 '+(ageF.m>=1?'위험이 높은':'위험이 낮은')+' 지역 유형과 닮았다는 신호일 뿐이라 위 원인에서 뺐어요.');
+  ref.push('평균 점포와 비교한 통계적 연관이며 원인이나 정책 효과는 아니에요.'+(v.n<30?' 이 조합은 점포가 30개 미만이라 실제 폐업률이 불안정해요.':''));
+  return '<div class="blk"><h4>참고</h4><ul class="refl">'+ref.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>';
 }
 function renderPanel(){
   const p=$('#panel'); if(S.sel===null) return; const r=S.sel,R=D.regions[r],b=S.biz,v=val(r,b);
@@ -553,12 +571,15 @@ function renderPanel(){
   S.home=false;
   let h='<div class="phead"><div><h3>'+nm+'</h3><div class="sub2">'+(b>=0?BIZ[b]:'전체 7개 업종')+' · 점포 '+(v?v.n.toLocaleString():0)+'개</div></div><div class="acts"><button class="chip-b only-m" data-act="tomap">↑ 지도 보기</button><button class="chip-b" data-act="copy" title="지금 화면의 주소를 복사해요">링크 복사</button><button class="chip-b" data-act="csv" title="이 지역의 업종별 값을 CSV로 저장해요">CSV 저장</button><button class="chip-b" data-act="clear">✕ 선택 해제</button></div></div>';
   if(!v){$('#panel').innerHTML=h+'<p class="hint">이 시군구에는 해당 업종 점포가 없습니다.</p>'+bizRows(r);bindPanel(p);return;}
-  const up=v.mult>=1;
-  h+='<div class="sub2 hasq" style="margin-top:6px">상대 폐업 위험'+qtip(TIP_RISK)+'</div><div class="big"><b class="'+(up?'t-hi':'t-lo')+'">×'+v.mult.toFixed(2)+'</b><span class="delta '+(up?'t-hi':'t-lo')+'">'+DELTA(v.mult)+'</span></div>';
-  h+='<div class="sub2">실제 폐업률 '+pct(v.rate)+' <span class="hint">(전국 '+pct(NAT.rate)+')</span></div>';
-  if(b>=0&&v.n<30) h+='<div class="warn">점포가 30개 미만이라 실제 폐업률은 우연 변동이 큽니다. 상대 폐업 위험은 모형 기반이라 상대적으로 안정적입니다.</div>';
-  h+='<div class="blk"><h4>왜 그런가 — 요인별 배수 (▲ 붉음: 위험 높임 · ▼ 푸름: 위험 낮춤 · 회색: ±3% 이내)</h4>'+whyChart(v.x)+'<p class="hint" style="margin:2px 0 0">옅은 막대는 참고용 신호예요(? 를 누르면 이유가 나와요). 막대 길이는 로그 눈금이에요.</p></div>';
-  h+='<div class="blk why"><h4>해설</h4>'+explain(r,b)+'</div>';
+  const up=v.mult>=1,lv=LEVEL(v.mult);
+  h+='<p class="ubline" style="margin-top:8px">'+ubadgeJ(b>=0?'grp':'sgg')+'</p>';
+  h+='<div class="lvl lv-'+lv.k+'"><span class="lvl-k hasq">폐업 위험 수준'+qtip(TIP_LEVEL)+'</span><b>'+lv.a+' '+lv.t+'</b></div>';
+  h+='<div class="metric mod"><div class="mk hasq">상대 폐업 위험'+qtip(TIP_RISK)+' '+SRC_MOD+'</div><div class="big"><b class="'+(up?'t-hi':'t-lo')+'">×'+v.mult.toFixed(2)+'</b><span class="delta '+(up?'t-hi':'t-lo')+'">'+DELTA(v.mult)+'</span></div><p class="bench">전국 평균 점포 = ×1.00. 폐업 확률이 아니라 평균 점포와 비교한 상대적인 위험이에요.</p></div>';
+  h+='<div class="metric obs"><div class="mk">실제 180일 내 폐업률 '+SRC_OBS+'</div><div class="obsv">'+pct(v.rate)+' <span class="hint">(전국 '+pct(NAT.rate)+')</span></div></div>';
+  if(b>=0&&v.n<30) h+='<div class="warn">점포가 30개 미만이라 실제 폐업률은 우연 변동이 커요. 상대 폐업 위험은 모형 기반이라 상대적으로 안정적이에요.</div>';
+  h+=whyBlock(r,b);
+  h+='<div class="blk"><h4>요인별 영향 (평균 점포 = ×1.0 기준)</h4>'+whyChart(v.x)+'<p class="hint dirs"><b class="t-hi">▲ 오른쪽(붉은색)</b>으로 갈수록 폐업 위험을 <b>높이는</b> 요인이고, <b class="t-lo">▼ 왼쪽(푸른색)</b>으로 갈수록 <b>낮추는</b> 요인이에요. 가운데 ×1.0은 평균과 같은 영향, 회색은 ±3% 이내라 영향이 작아요.</p><p class="hint" style="margin:2px 0 0">옅은 막대는 참고용 신호예요(? 를 누르면 이유가 나와요). 막대 길이는 로그 눈금이에요.</p></div>';
+  h+=refBlock(r,b);
   if(v.g){const g=v.g;
     h+='<div class="blk"><h4>BC카드 소비 구성 (2026-01~06, 맥락 정보)</h4><div class="two"><div>'+barsMini(g.age,AGE,x=>pct(x,0))+'<p class="hint" style="margin:2px 0 6px">연령 코드별 소비액 비중</p>'+barsMini(g.gen,GEN,x=>pct(x,0))+'</div><div>'+spark(g.amt)+'</div></div></div>';
     h+='<div class="blk"><h4>상권 프로필</h4><div class="kp"><div><b>'+g.age_yr.toFixed(1)+'년</b><span>평균 영업연수 (전국 '+NAT.age_yr.toFixed(1)+')</span></div><div><b>'+pct(g.fr)+'</b><span>프랜차이즈 (전국 '+pct(NAT.fr)+')</span></div><div><b>'+pct(g.reg_hist)+' / '+pct(g.nb_hist)+'</b><span>2026-01-01 기준 직전 1년 폐업률 (이 시군구 / 이웃)</span></div><div><b>'+g.n.toLocaleString()+'개</b><span>같은 업종 경쟁 점포</span></div></div></div>';
@@ -588,7 +609,7 @@ function renderHome(){
   $('#panel').innerHTML='<h3>어디부터 볼까요?</h3><p class="hint" style="margin:2px 0 4px">지도의 버블을 누르거나 검색창에 지역·업종을 입력해 보세요. 아래 지역을 누르면 바로 그 지역으로 이동해요.</p>'+
    '<div class="blk"><h4>▲ 폐업 위험이 높은 곳 TOP 5 · '+nm+'</h4><div class="rklist">'+topRows(b,'hi',5).map((x,i)=>rkCard(x,b,i)).join('')+'</div></div>'+
    '<div class="blk"><h4>▼ 폐업 위험이 낮은(안전한) 곳 TOP 5 · '+nm+'</h4><div class="rklist">'+topRows(b,'lo',5).map((x,i)=>rkCard(x,b,i)).join('')+'</div></div>'+
-   '<p class="hint" style="margin:12px 0 0">점포가 '+(b>=0?300:2000)+'개 이상인 곳만 순위에 넣었어요'+'<span class="hasq">'+qtip(TIP_MIN)+'</span>. 상대 폐업 위험은 평균 점포를 ×1.0으로 놓고 비교한 값이에요.</p>';
+   '<p class="hint" style="margin:12px 0 0">점포가 '+(b>=0?300:2000)+'개 이상인 곳만 순위에 넣었어요'+'<span class="hasq">'+qtip(TIP_MIN)+'</span>. ×값(상대 폐업 위험)은 모델이 평균 점포(×1.0)와 비교해 계산한 값이고, 폐업률은 실제로 관측된 값이에요.</p>';
   bindGo($('#panel'));syncUrl();
 }
 function bindGo(root){root.querySelectorAll('[data-r]').forEach(x=>x.addEventListener('click',()=>{if(x.dataset.b!==undefined)setBizQuiet(+x.dataset.b);select(+x.dataset.r,true);}));

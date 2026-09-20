@@ -17,7 +17,8 @@ TEMPLATE = re.search(r'TEMPLATE = r"""(.*?</html>)"""', src, re.S).group(1)
 P = Path("site_parts")
 data = (P / "site_data.json").read_text(encoding="utf-8")
 css = (P / "report.css").read_text(encoding="utf-8")
-surv = (P / "surv.html").read_text(encoding="utf-8")
+from site_surv import transform as surv_transform
+surv = surv_transform((P / "surv.html").read_text(encoding="utf-8"))   # site_parts/surv.html은 원문 그대로 보관
 meta = json.loads((P / "meta.json").read_text(encoding="utf-8"))
 nat = json.loads(data)["national"]
 

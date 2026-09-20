@@ -870,13 +870,7 @@ body{overflow-x:clip}
 @media (max-width:767px){.band{padding:var(--s6) 0}}
 .hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--s3) var(--s5)}
 .hero .hd{min-width:0}
-.statstrip{display:flex;flex-wrap:wrap;gap:var(--s3) var(--s5)}
-.statstrip>div{padding-left:var(--s3);border-left:3px solid var(--accent-tint)}
-.statstrip b{display:block;font-size:var(--fs-lg);font-weight:800;line-height:1.25;color:var(--accent);font-variant-numeric:tabular-nums}
-.statstrip span{font-size:var(--fs-sm);color:var(--sub)}
-@media (max-width:767px){.statstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s2);width:100%}.statstrip>div{padding-left:var(--s2)}.statstrip b{font-size:18px}.statstrip .dt{display:none}}
-.statstrip .dt{font-style:normal}
-.survlink{background:var(--acc-soft);border:1px solid var(--acc);border-radius:var(--r);padding:10px var(--s4);margin:8px 0;font-size:var(--fs-md)}
+@media (max-width:767px){.survlink{background:var(--acc-soft);border:1px solid var(--acc);border-radius:var(--r);padding:10px var(--s4);margin:8px 0;font-size:var(--fs-md)}
 .survlink a{color:var(--acc);font-weight:600}
 table.ov{min-width:560px}
 table.ov th{white-space:normal;vertical-align:bottom}table.ov th small{font-weight:400;color:var(--sub);font-size:var(--fs-sm)}
@@ -974,7 +968,7 @@ h2 .q,h3 .q,h4 .q{vertical-align:middle}
 <section class="tab on" id="t-map">
 <div class="hero"><div class="hd"><p class="eyebrow">CLOSURE RISK MAP</p><h1>어느 지역·업종이 왜 위험한가</h1>
 <p>붉은 지역일수록 폐업 위험이 높고, 푸른 지역일수록 낮아요. 지역을 누르면 왜 그런지 이유를 볼 수 있어요.</p></div>
-<div class="statstrip" role="group" aria-label="분석 범위 요약"><div><b>635,536</b><span>분석 점포</span></div><div><b id="ss-reg">-</b><span>시군구</span></div><div><b id="ss-biz">-</b><span>업종</span></div><div><b>180일</b><span>관측 기간<i class="dt"> 2026-01-01~06-30</i></span></div></div></div>
+</div>
 <div class="guide" id="guide" hidden><ol><li>지도에서 지역을 누르거나 검색해요</li><li>색(폐업 위험도)과 요인 막대로 이유를 봐요</li><li>업종 버튼으로 업종별로 비교해요</li></ol><button type="button" class="chip-b" id="guideX" aria-label="가이드 닫기">닫기 ✕</button></div>
 <div class="toolbar">
 <span class="sugwrap"><input type="text" id="ask" placeholder="예) 동탄 서양음식 / 합천 한식 / 한식 위험한 곳" aria-label="지역·업종 질문" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug"><ul class="sug" id="sug" role="listbox" hidden></ul></span>
@@ -1539,7 +1533,6 @@ function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribu
 document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>tab(x.dataset.t)));
 if(location.hash&&$('#t-'+location.hash.slice(1)))tab(location.hash.slice(1));
 window.addEventListener('hashchange',()=>{const k=location.hash.slice(1);if($('#t-'+k)&&!$('#t-'+k).classList.contains('on'))tab(k);});   // 같은 문서에서 #surv 등으로 바꿔도 탭이 열린다
-$('#ss-reg').textContent=D.regions.length.toLocaleString();$('#ss-biz').textContent=BIZ.length;   // 통계 스트립 값은 데이터에서 읽는다
 renderLegend();renderHome();update();
 $('#btn-nat').addEventListener('click',clearSel);$('#btn-sudo').addEventListener('click',goSudo);
 const aq=new URLSearchParams(location.search).get('area');if(aq){$('#areaq').value=aq;areaShow();}

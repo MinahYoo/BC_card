@@ -713,7 +713,6 @@ input[type=text]{min-width:min(260px,100%);flex:1}
 .grid2{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
 @media (max-width:920px){.grid2{grid-template-columns:1fr}}
 .mapcard{position:relative;padding:8px;isolation:isolate} #map{width:100%;height:min(78vh,700px);min-height:440px;border-radius:8px;z-index:0}
-.leaflet-control-attribution{font-size:10px;padding:0 5px;color:var(--sub);background:color-mix(in srgb,var(--card) 72%,transparent)} .leaflet-control-attribution a{color:inherit}
 .leaflet-container{font:inherit;background:var(--card)} .leaflet-tile-pane{filter:grayscale(1) contrast(.88) brightness(1.08)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:grayscale(1) invert(1) contrast(.85) brightness(.85)}} .leaflet-tooltip{font-size:12.5px;line-height:1.4}
 .legend{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--sub);margin:8px 4px 2px}
@@ -896,9 +895,7 @@ const colorOf=v=>S.mode==='mult'?col(v.mult):col(v.rate/NAT.rate);
 // ---------- 지도 (Leaflet + 배경 지도 타일) ----------
 // 배경 타일은 외부(CARTO/OpenStreetMap)에서 불러온다. 타일을 못 불러와도 버블과 패널은 그대로 동작한다.
 const dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches&&document.documentElement.dataset.theme!=='light';
-const map=L.map('map',{minZoom:6,maxZoom:14,zoomSnap:0.5,preferCanvas:true,attributionControl:false});
-// Leaflet 접두('Leaflet | ' + 국기)는 빼고(라이선스상 제거 허용), 타일 제공처 크레딧(OSM/Esri)은 유지한다(OSM 이용 정책상 지도 위에 보여야 함).
-L.control.attribution({prefix:false,position:'bottomright'}).addTo(map);
+const map=L.map('map',{minZoom:6,maxZoom:14,zoomSnap:0.5,preferCanvas:true,attributionControl:true});
 const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
 const esri=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:15,attribution:'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors'});
 let terr=0,fb=false;const qtiles=new URLSearchParams(location.search).get('tiles');

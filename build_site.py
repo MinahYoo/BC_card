@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 
 import build_report as R                     # report/index.html도 함께 갱신된다
-from site_surv import transform as surv_transform
+from site_surv import transform as surv_transform, TIP_MIN
 
 data = Path("output/site_data.json").read_text(encoding="utf-8")
 css = re.search(r"<style>(.*?)</style>", R.HTML, re.S).group(1)
@@ -123,6 +123,21 @@ body.guide-on #map{height:clamp(400px,calc(100vh - 355px),760px)}
 @media (max-width:767px){body.guide-on #map{height:min(62vh,520px)}}
 .cmp{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4)}@media (max-width:767px){.cmp{grid-template-columns:1fr}}
 .cmp h4{margin:0}.cmp .big b{font-size:32px}.cmpdiff{margin:12px 0 0;font-size:var(--fs-md)}
+.sumbox{background:var(--card);border:1px solid var(--acc);border-radius:12px;padding:18px 20px;margin:0 0 8px}
+.sumbox h2{font-size:22px;margin:0 0 4px}.sumlist{margin:0 0 4px;padding-left:22px}.sumlist li{margin:5px 0;font-size:var(--fs-md)}
+.sumcta{display:flex;flex-wrap:wrap;gap:var(--s2)}.sumcta a.chip-b{text-decoration:none;display:inline-block}
+.plain{font-size:var(--fs-md);margin:6px 0 10px}
+details.stat{border:1px solid var(--line);border-radius:var(--r);background:var(--card);margin:8px 0 14px}
+details.stat>summary{cursor:pointer;padding:10px 14px;font-weight:600;color:var(--acc)}
+details.stat>summary:hover{background:var(--acc-soft)}
+details.stat[open]>summary{border-bottom:1px solid var(--line)}
+.statbody{padding:8px 14px 14px}
+.how{color:var(--sub);font-size:var(--fs-sm);margin:2px 0 8px}
+.imps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));gap:12px;margin-bottom:8px}
+.imp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.imp h4{margin:0 0 8px;font-size:16px;line-height:1.4}
+.imp dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:var(--fs-sm)}
+.imp dt{font-weight:700;color:var(--acc);white-space:nowrap}.imp dd{margin:0}
 .hb{margin:6px 0}
 .hbrow{display:grid;grid-template-columns:minmax(132px,34%) minmax(0,1fr) 78px;gap:var(--s2);align-items:center;margin:9px 0;font-size:var(--fs-sm)}
 .hbrow .nm{line-height:1.3}.hbrow .val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -198,13 +213,13 @@ __EXTRA__</style></head><body>
 <h3 style="margin-top:28px">두 지역 비교</h3>
 <div class="ctrl"><input type="text" id="cmpA" list="rlist" placeholder="지역 A (예: 서울특별시 마포구)" aria-label="비교할 지역 A"><span class="hint">vs</span><input type="text" id="cmpB" list="rlist" placeholder="지역 B (예: 서울특별시 강남구)" aria-label="비교할 지역 B"><select id="cmpBiz" aria-label="비교할 업종"></select></div>
 <div id="cmpOut" class="card"><p class="hint">두 지역을 고르면 폐업 위험도와 요인 막대를 나란히 보여 줘요.</p></div>
-<h3 style="margin-top:28px">시군구 위험·안전 Top 10 (전체 업종)</h3>
+<h3 style="margin-top:28px">시군구 위험·안전 Top 10 (전체 업종) <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h3>
 <p class="hint" style="margin:0 0 8px">점포 2,000개 이상 시군구만 순위에 넣었어요. 행을 누르면 지도에서 열려요.</p>
 <div class="cols3"><div class="card" id="rg-hi"></div><div class="card" id="rg-lo"></div></div>
-<h3 style="margin-top:28px">업종별 위험 순위 (점포 300개 이상 조합)</h3>
+<h3 style="margin-top:28px">업종별 위험 순위 (점포 300개 이상 조합) <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h3>
 <div class="ctrl"><select id="rankbiz"></select></div>
 <div class="cols3"><div class="card" id="rk-hi"></div><div class="card" id="rk-lo"></div></div>
-<h3 style="margin-top:28px">소비가 많으면 버티는가? — 점포당 소비와 실제 폐업률</h3>
+<h3 style="margin-top:28px">소비가 많으면 버티는가? — 점포당 소비와 실제 폐업률 <span class="hasq"><button type="button" class="q" data-tip="__TIP_MIN__" aria-label="설명: __TIP_MIN__">?</button></span></h3>
 <div class="card"><div id="scat"></div><p class="cap">점 하나 = 시군구×업종 조합(점포 100개 이상), 굵은 선 = 소비 10분위별 실제 폐업률. 소비 하위 구간의 폐업률이 가장 낮고 중·상위에서는 비슷한 수준으로 이어집니다 — 소비가 높다고 덜 폐업하지 않습니다. 업종 안 소비 순위와 폐업률의 순위상관은 전체 __RHO_ALL__, 같은 시군구 안에서는 __RHO_IN__(관계 없음)입니다.</p></div>
 </section>
 
@@ -226,13 +241,14 @@ const SHOW=[
  {key:'site',label:'점포 규모·운영 특성',idx:[3],tip:'점포 규모, 다중이용시설 여부처럼 점포 자체의 특성이에요.'},
  {key:'hist',label:'지역 폐업 흐름',idx:[5],tip:'이 시군구와 이웃 시군구에서 2026-01-01 기준 직전 1년 동안 폐업한 점포의 비율이에요. 높을수록 위험이 높아요.'},
  {key:'age',label:'BC카드 고객 연령대',idx:[7],tip:'BC카드 결제 고객의 연령대 구성이에요. 같은 시군구 안에서는 위험을 가르지 못했고, 어떤 유형의 지역인지 알려 주는 신호일 뿐이에요. 원인으로 읽으면 안 되어서 옅게 표시하고 해설에서는 뺐어요.'},
- {key:'gen',label:'BC카드 고객 성별',idx:[6],tip:'BC카드 결제 고객의 남성·여성·법인 비중이에요.'},
+ {key:'gen',label:'BC카드 고객 성별',idx:[6],tip:'BC카드 결제 고객의 남성·여성·법인 비중이에요. 최종 모형에는 들어 있지만, 같은 시군구 안에서는 빼는 편이 예측이 조금 더 나았어요(생존 분석 탭 참고). 그래서 참고용으로 봐 주세요.'},
  {key:'biz',label:'업종 자체의 위험',idx:[8],tip:'업종마다 평균적으로 폐업이 잦은 정도가 달라요. 그 업종 자체가 가진 기본 위험이에요.'},
  {key:'etc',label:'입지·기타 요인',idx:[2,4],tip:'위 항목에 들어가지 않는 입지 등 나머지 요인을 합친 값이에요.'}];
 const factors=x=>SHOW.map(s=>({key:s.key,label:s.label,tip:s.tip,m:s.idx.reduce((a,i)=>a*x[i],1)}));
 const qa=t=>t.replace(/"/g,'&quot;');
 const qtip=t=>'<button type="button" class="q" data-tip="'+qa(t)+'" aria-label="설명: '+qa(t)+'">?</button>';   // (?) 도움말: 마우스를 올리거나 누르면 열린다
-document.addEventListener('click',e=>{const q=e.target.closest('.q');document.querySelectorAll('.q.open').forEach(x=>{if(x!==q)x.classList.remove('open');});if(q){q.classList.toggle('open');q.classList.toggle('flip',q.getBoundingClientRect().left>innerWidth/2);}});
+document.addEventListener('click',e=>{const g=e.target.closest('[data-go-tab]');if(g)tab(g.dataset.goTab);const jm=e.target.closest('[data-jump]');if(jm){e.preventDefault();const el=document.getElementById(jm.dataset.jump);if(el)el.scrollIntoView({behavior:'smooth'});}
+  const q=e.target.closest('.q');document.querySelectorAll('.q.open').forEach(x=>{if(x!==q)x.classList.remove('open');});if(q){q.classList.toggle('open');q.classList.toggle('flip',q.getBoundingClientRect().left>innerWidth/2);}});
 const MX=m=>'<b class="'+(m>=1?'t-hi':'t-lo')+'">'+(m>=1?'▲':'▼')+' ×'+m.toFixed(2)+'</b>';   // 색만으로 구분하지 않도록 ▲/▼를 함께 쓴다
 const heat=m=>'color-mix(in srgb,var('+(m>=1?'--hi':'--lo')+') '+(Math.min(Math.abs(Math.log(m))/Math.log(1.9),1)*20).toFixed(0)+'%,transparent)';   // 값 크기에 비례하는 약한 배경색
 function makeSortable(t){   // th[data-k]를 누르면 tbody 행의 data-<k> 값으로 정렬한다(행 클릭 동작은 그대로)
@@ -246,6 +262,7 @@ function makeSortable(t){   // th[data-k]를 누르면 tbody 행의 data-<k> 값
     th.addEventListener('click',go);th.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});});
 }
 const DELTA=m=>{const pc=Math.round(Math.abs(m-1)*100);return pc===0?'평균 점포와 비슷함':(m>=1?'▲ 평균 점포보다 '+pc+'% 높음':'▼ 평균 점포보다 '+pc+'% 낮음');};
+const TIP_MIN='__TIP_MIN__';
 const TIP_RISK='같은 조건(영업연수·규모 등)을 맞춘 뒤 평균 점포와 비교한 폐업 위험의 배수예요. ×1.0이 평균, ×1.5면 평균보다 50% 높다는 뜻이에요. 연관일 뿐 원인은 아니에요.';
 const NOTE_RATE='폐업률은 단순 비율이고, 폐업 위험도(배수)는 영업연수·규모 등을 통제한 뒤 평균 점포와 비교한 값이라 순위가 다를 수 있어요.';
 const GI=new Map(); D.groups.forEach((g,i)=>GI.set(g.r*10+g.b,i));
@@ -446,7 +463,7 @@ function renderHome(){
   $('#panel').innerHTML='<h3>어디부터 볼까요?</h3><p class="hint" style="margin:2px 0 4px">지도의 버블을 누르거나 검색창에 지역·업종을 입력해 보세요. 아래 지역을 누르면 바로 그 지역으로 이동해요.</p>'+
    '<div class="blk"><h4>▲ 폐업 위험이 높은 곳 TOP 5 · '+nm+'</h4><div class="rklist">'+topRows(b,'hi',5).map((x,i)=>rkCard(x,b,i)).join('')+'</div></div>'+
    '<div class="blk"><h4>▼ 폐업 위험이 낮은(안전한) 곳 TOP 5 · '+nm+'</h4><div class="rklist">'+topRows(b,'lo',5).map((x,i)=>rkCard(x,b,i)).join('')+'</div></div>'+
-   '<p class="hint" style="margin:12px 0 0">점포가 '+(b>=0?300:2000)+'개 이상인 곳만 순위에 넣었어요. 폐업 위험도는 평균 점포를 ×1.0으로 놓고 비교한 값이에요.</p>';
+   '<p class="hint" style="margin:12px 0 0">점포가 '+(b>=0?300:2000)+'개 이상인 곳만 순위에 넣었어요'+'<span class="hasq">'+qtip(TIP_MIN)+'</span>. 폐업 위험도는 평균 점포를 ×1.0으로 놓고 비교한 값이에요.</p>';
   bindGo($('#panel'));syncUrl();
 }
 function bindGo(root){root.querySelectorAll('[data-r]').forEach(x=>x.addEventListener('click',()=>{if(x.dataset.b!==undefined)setBizQuiet(+x.dataset.b);select(+x.dataset.r,true);}));
@@ -630,7 +647,7 @@ if(qP){$('#ask').value=qP;ask(bi>=0);}else if(bi>=0){update();renderHome();}
 </script></body></html>"""
 
 html_out = (TEMPLATE.replace("__CSS__", css).replace("__EXTRA__", EXTRA_CSS).replace("__DATA__", data).replace("__SURV__", surv).replace("__LEAFLET_CSS__", Path("vendor/leaflet.css").read_text(encoding="utf-8")).replace("__LEAFLET_JS__", Path("vendor/leaflet.js").read_text(encoding="utf-8"))
-            .replace("__N__", f"{nat['n']:,}").replace("__EV__", f"{nat['events']:,}").replace("__RATE__", f"{nat['rate'] * 100:.2f}")
+            .replace("__TIP_MIN__", TIP_MIN).replace("__N__", f"{nat['n']:,}").replace("__EV__", f"{nat['events']:,}").replace("__RATE__", f"{nat['rate'] * 100:.2f}")
             .replace("__RHO_ALL__", f"{R.rho_all:+.2f}").replace("__RHO_IN__", f"{R.rho_in:+.2f}"))
 for d in ("site", "docs"):             # site/는 로컬 확인용, docs/는 GitHub Pages(main 브랜치 /docs)용 — 내용 동일
     Path(d).mkdir(exist_ok=True)

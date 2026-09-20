@@ -17,13 +17,13 @@ TEMPLATE = re.search(r'TEMPLATE = r"""(.*?</html>)"""', src, re.S).group(1)
 P = Path("site_parts")
 data = (P / "site_data.json").read_text(encoding="utf-8")
 css = (P / "report.css").read_text(encoding="utf-8")
-from site_surv import transform as surv_transform
+from site_surv import transform as surv_transform, TIP_MIN
 surv = surv_transform((P / "surv.html").read_text(encoding="utf-8"))   # site_parts/surv.html은 원문 그대로 보관
 meta = json.loads((P / "meta.json").read_text(encoding="utf-8"))
 nat = json.loads(data)["national"]
 
 html_out = (TEMPLATE.replace("__CSS__", css).replace("__EXTRA__", EXTRA_CSS).replace("__DATA__", data).replace("__SURV__", surv).replace("__LEAFLET_CSS__", Path("vendor/leaflet.css").read_text(encoding="utf-8")).replace("__LEAFLET_JS__", Path("vendor/leaflet.js").read_text(encoding="utf-8"))
-            .replace("__N__", f"{nat['n']:,}").replace("__EV__", f"{nat['events']:,}").replace("__RATE__", f"{nat['rate'] * 100:.2f}")
+            .replace("__TIP_MIN__", TIP_MIN).replace("__N__", f"{nat['n']:,}").replace("__EV__", f"{nat['events']:,}").replace("__RATE__", f"{nat['rate'] * 100:.2f}")
             .replace("__RHO_ALL__", meta["rho_all"]).replace("__RHO_IN__", meta["rho_in"]))
 Path("docs").mkdir(exist_ok=True)
 Path("docs/index.html").write_text(html_out, encoding="utf-8")

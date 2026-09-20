@@ -60,6 +60,7 @@ def unify_terms(h):
         ("(M3L, p=0.23)", "(최종 모형, p=0.23)"),
         ("최종 모형(M3L)에서", "최종 모형에서"),
         ("파랑 = 신뢰구간이 0을 제외.", "진한 청록 = 신뢰구간이 0을 제외."),
+        ("지역의 최근 폐업 흐름을 결합해야 합니다.", "지역 폐업 흐름을 결합해야 합니다."),
     ]
     for old, new in pairs:
         h = _rep(h, old, new)
@@ -156,5 +157,136 @@ def transform_step1(h):
     return h
 
 
+# ---------------------------------------------------------------- Step 2: 정보 구조 ----------
+TIP_MIN = ("지역·업종 조합 표는 점포 300개 이상, 시군구 전체 Top 10은 2,000개 이상, 소비 산점도는 100개 이상만 넣어요. "
+           "다루는 단위마다 점포 수가 달라서 기준을 다르게 뒀어요. 점포가 적으면 폐업률이 우연으로 크게 흔들려요.")
+
+
+def how(text):
+    return f'<p class="how"><b>읽는 법</b> {text}</p>'
+
+
+def _after(h, anchor, add, n=1):
+    assert h.count(anchor) == n, f"앵커 불일치({h.count(anchor)}≠{n}): {anchor[:60]!r}"
+    return h.replace(anchor, anchor + add)
+
+
+def _split_sections(h):
+    idx = [m.start() for m in re.finditer(r"<h2>", h)]
+    assert idx and idx[0] == 0
+    parts = [h[a:b] for a, b in zip(idx, idx[1:] + [len(h)])]
+    return {re.match(r"<h2>(.*?)</h2>", x).group(1): x for x in parts}
+
+
+def _find(secs, prefix):
+    ks = [k for k in secs if k.startswith(prefix)]
+    assert len(ks) == 1, f"섹션 못 찾음: {prefix}"
+    return ks[0]
+
+
+def _fold(sec, plain, summary="통계 상세 (심사·연구자용)"):
+    """제목 바로 아래에 일반인용 한 줄을 두고, 나머지(통계 전문 내용)는 기본 닫힘 접이식에 넣는다. 내용은 지우지 않는다."""
+    m = re.match(r"(<h2>.*?</h2>)(.*)", sec, re.S)
+    return f'{m.group(1)}<p class="plain">{plain}</p><details class="stat"><summary>{summary}</summary><div class="statbody">{m.group(2)}</div></details>'
+
+
+SUMMARY = (
+    '<div class="sumbox"><h2 style="margin:0 0 4px">이 서비스는 무엇이고, 결론은 무엇인가요?</h2>'
+    '<p class="plain" style="margin:0 0 8px">전국 시군구의 7개 업종 점포가 2026년 상반기 180일 동안 실제로 문을 닫은 기록을 바탕으로, 어느 지역·업종이 평균 점포보다 폐업 위험이 높은지, 그리고 왜 그런지를 지도로 보여 줘요.</p>'
+    '<ol class="sumlist"><li><b>위험은 업종보다 지역에서 더 크게 갈려요.</b> 시군구만으로 설명한 정도가 업종만의 약 4배예요.</li>'
+    '<li><b>소비가 많다고 버티지는 않아요.</b> BC카드 소비 지표를 더해도 폐업 예측은 좋아지지 않았어요.</li>'
+    '<li><b>점포는 영업연수·점포 규모·운영 특성·프랜차이즈가, 지역은 지역 폐업 흐름이 위험을 가장 잘 설명해요.</b></li></ol>'
+    '<p class="hint" style="margin:6px 0 10px">모두 연관이며 인과가 아니에요. 아래에서 BC카드에 주는 시사점과 근거를 볼 수 있어요.</p>'
+    '<div class="sumcta"><button type="button" class="chip-b pri" data-go-tab="map">지도에서 확인하기 →</button>'
+    '<a class="chip-b" href="#implications" data-jump="implications">BC카드에 주는 시사점 보기</a></div></div>')
+
+# 시사점 4개: 원문 문장은 그대로 두고 “누가 · 무엇을 · 어떤 데이터로”로 구조화한다(누가는 적용 주체를 정리한 표현)
+IMPS = [
+    ("소비 지표 단독으로 폐업 위험을 진단하지 않는다.", "BC카드 상권 분석·가맹점 대상 서비스 담당", "소비 규모만으로 “안전한 상권”이라고 안내하지 않는다", "시군구×업종 소비 금액·건수(BC카드 ABP) — 이번 분석에서 예측을 개선하지 못한 지표"),
+    ("위험 진단은 점포 특성(영업연수·프랜차이즈·규모)과 지역 폐업 흐름을 결합해야 합니다.", "폐업 위험 진단 상품을 기획하는 BC카드 상품팀", "점포 특성과 지역 폐업 흐름을 결합한 폐업 위험도 지표를 만든다", "인허가 데이터(LOCALDATA)의 영업연수·프랜차이즈·규모 + 이웃 시군구를 포함한 직전 1년 폐업률"),
+    ("조기 경보 후보:", "가맹점 대상 상권 모니터링 서비스 담당", "신생 점포 비중이 높고 이웃 지역 폐업이 늘고 있는 지역·업종 조합을 우선 관찰 대상으로 삼는다", "영업연수 분포(인허가) + 이웃 시군구 폐업 추이"),
+    ("더 나아가려면 점포 단위 매출 데이터가 필요합니다.", "BC카드 가맹점 데이터 담당", "이번 지역·업종 조합 수준의 진단을 점포 단위로 넓힌다", "가맹점별 월 매출 추이(“소비는 있는데 못 버티는” 점포를 직접 확인)"),
+]
+
+
+def implications(sec):
+    items = re.findall(r"<li><b>(.*?)</b>(.*?)</li>", sec, re.S)
+    assert len(items) == 4, "시사점 개수가 달라짐"
+    out = ['<h2 id="implications">BC카드에 주는 시사점</h2><p class="sec-sub">누가 · 무엇을 · 어떤 데이터로 할 수 있는지로 정리했어요(분석 결과를 활용처 관점으로 다시 쓴 것이며, 사실 내용은 그대로예요).</p><div class="imps">']
+    for (head, body), (h0, who, what, data) in zip(items, IMPS):
+        assert head == h0, f"시사점 문구가 달라짐: {head}"
+        out.append(f'<div class="imp"><h4>{head}</h4><dl><dt>누가</dt><dd>{who}</dd><dt>무엇을</dt><dd>{what}</dd><dt>어떤 데이터로</dt><dd>{data}</dd></dl><p class="cap" style="margin:6px 0 0">{body.strip()}</p></div>')
+    out.append("</div>")
+    return "".join(out)
+
+
+def step2(h):
+    # 차트·표 제목의 용어 풀이 + “읽는 법”
+    dc = tip("ΔC-index", "Δ(델타)는 ‘변화량’이에요. 어떤 요인 묶음을 뺐을 때 점포 단위 판별력(C-index)이 얼마나 떨어지는지예요. 클수록 그 묶음이 중요해요.")
+    ds = tip("ΔSpearman", "요인 묶음을 뺐을 때 순위 예측(Spearman 순위상관)이 얼마나 나빠지는지예요. 클수록 그 묶음이 중요해요.")
+    h = _rep(h, "점포 단위 판별력 하락 (ΔC-index)</h3>", f"점포 단위 판별력 하락 ({dc})</h3>" + how("막대가 길수록, 그 요인 묶음을 빼면 점포 단위 예측(폐업할 점포 가려내기)이 많이 나빠져요."))
+    h = _rep(h, "지역 간 순위 하락 (ΔSpearman, 95% CI)</h3>", f"지역 간 순위 하락 ({ds}, 95% CI)</h3>" + how("막대가 길수록, 그 요인 묶음을 빼면 ‘지역끼리의 위험 순위’가 많이 틀어져요. 막대 위 가로선은 95% 신뢰구간이에요."))
+    h = _rep(h, "같은 시군구 안 순위 하락 (ΔSpearman, 95% CI)</h3>", "같은 시군구 안 순위 하락 (ΔSpearman, 95% CI)</h3>" + how("같은 시군구 안에서 지역·업종 조합의 순위를 가르는 데 그 요인 묶음이 얼마나 필요한지예요. 왼쪽(음수)이면 빼는 편이 오히려 나은 요인이에요."))
+    h = _rep(h, '<div class="card"><div class="hb"><div class="hbrow" data-cls="muted"><div class="nm">업종만',
+             '<div class="card"><h3 style="margin-top:0">폐업률 차이를 설명하는 정도 (조정 R²)</h3>' + how("막대가 길수록 그 정보(업종 또는 시군구)만으로 지역·업종 조합 간 폐업률 차이를 잘 설명해요. 이론상 상한은 약 0.72예요.") + '<div class="hb"><div class="hbrow" data-cls="muted"><div class="nm">업종만')
+    h = _rep(h, '<div class="card"><div class="hb"><div class="hbrow" data-cls="muted"><div class="nm">① 모형 없음',
+             '<div class="card"><h3 style="margin-top:0">이웃끼리 닮은 패턴이 남은 정도 (Moran’s I)</h3>' + how("막대가 짧을수록(0에 가까울수록) 모형이 놓친 ‘이웃끼리 닮은 패턴’이 적어요.") + '<div class="hb"><div class="hbrow" data-cls="muted"><div class="nm">① 모형 없음')
+    h, n = re.subn(r'(<h3 style="margin-top:0">(?:점포당 소비|객단가)\(1월.*?</h3>)', lambda m: m.group(1) + how("막대는 0%부터 시작해요. 길수록 그 구간의 폐업률이 높아요."), h)
+    assert n == 2
+    h = _after(h, "순위 변화 · ΔSpearman)</h3>", how("각 칸은 변수를 더했을 때 순위 예측이 얼마나 좋아졌는지(ΔSpearman)와 [95% 신뢰구간]이에요. 구간이 0을 포함하면 개선이 확실하지 않다는 뜻이에요."))
+    h = _after(h, "<h3>가장 위험한 8개 지역·업종 조합</h3>", how("숫자는 그 요인이 평균 점포 대비 폐업 위험을 몇 배로 만드는지예요(×1.0 = 평균). 붉을수록 위험을 높이고 푸를수록 낮춰요."))
+    h, n = re.subn(r'(<h3 style="margin-top:0">예상보다 폐업이 (?:많은|적은) 군집.*?</h3>)', lambda m: m.group(1) + how("관측 = 실제 폐업 건수, 예상 = 모형이 예측한 건수예요."), h)
+    assert n == 2
+
+    # 4장: 해석 문장을 표 위로, 안전 표 바로 위에 “연관이며 인과 아님” 한 번 더
+    m = re.search(r'<p class="cap">(위험 지역·업종 조합은 영업연수가 짧고.*?)</p>', h, re.S)
+    assert m, "4장 해석 문장 없음"
+    cap = m.group(1)
+    h = h.replace(m.group(0), "")
+    h = _rep(h, "열은 뺐습니다.</p>", f'열은 뺐습니다.</p><div class="note"><b>해석.</b> {cap}</div>')
+    h = _rep(h, "<h3>가장 안전한 8개 지역·업종 조합</h3>", '<div class="note"><b>주의: 연관이며 인과가 아니에요.</b> 안전한 조합에 지방 한식계열이 많다고 해서 “지방 한식은 무조건 안전하다”는 뜻은 아니에요. 평균 점포와 비교한 통계적 연관일 뿐, 원인이나 정책 효과가 아니에요.</div><h3>가장 안전한 8개 지역·업종 조합</h3>' + how("위 표와 같은 방식으로 읽어요. 푸를수록 그 요인이 위험을 낮춰요."))
+    h = _rep(h, "점포 300개 이상인 지역·업종 조합만 표시하며", "점포 300개 이상인 지역·업종 조합만 표시하며" + tip("", TIP_MIN))
+    # 성별 주석(모순처럼 보이는 지점)
+    h = _rep(h, "BC카드 고객 성별은 빼는 편이 오히려 낫습니다(주황).</p></div>",
+             'BC카드 고객 성별은 빼는 편이 오히려 낫습니다(주황).</p>'
+             '<div class="note" style="margin:10px 0 0"><b>지도의 결과 카드에는 왜 “BC카드 고객 성별” 막대가 나오나요?</b> 최종 모형에는 성별 구성이 들어 있어 값이 표시돼요. 다만 같은 시군구 안에서 조합을 가르는 데는 빼는 편이 오히려 나았어요(위 주황 막대). 그래서 참고용으로 봐 주세요.</div></div>')
+    h = _rep(h, "3장 표에 그대로 실었습니다", "3장의 통계 상세 표에 그대로 실었습니다")
+
+    secs = _split_sections(h)
+    k_find = _find(secs, "한눈에"); k1, k2, k3 = _find(secs, "1장."), _find(secs, "2장."), _find(secs, "3장.")
+    k4, k5, k6, kl = _find(secs, "4장."), _find(secs, "5장."), _find(secs, "6장."), _find(secs, "데이터와 한계")
+    find = secs[k_find].replace("<h2>한눈에 보는 결론</h2>", "<h2>핵심 결론 (A~E)</h2>")
+    s1 = _fold(secs[k1], "점포 하나를 가려낼 땐 영업연수·점포 규모·운영 특성·프랜차이즈가, 지역끼리 비교할 땐 지역 폐업 흐름·BC카드 고객 연령대·영업연수가 중요했어요. 같은 시군구 안에서 조합을 가르는 건 업종뿐이었어요.")
+    s2 = _fold(secs[k2], "위험은 업종보다 지역에서 더 크게 갈려요. 시군구만으로 설명한 정도가 업종만의 약 4배예요.")
+    # 3장: 소비 3분위 차트는 그대로 두고, 통계 표만 접는다
+    s3 = secs[k3]
+    m3 = re.search(r"(<h3>모형에 더해 본 것과 결과.*?</h3>.*?</p>)\s*(<div class=\"scroll\">.*?</div>)", s3, re.S)
+    assert m3, "3장 표 구조가 달라짐"
+    s3 = s3.replace(m3.group(0), '<p class="plain">소비·객단가·경쟁밀도 등을 더해 봐도 예측이 좋아지지 않았어요(아래 표의 판정은 모두 “개선 없음”).</p>'
+                    f'<details class="stat"><summary>통계 상세 (심사·연구자용)</summary><div class="statbody">{m3.group(1)}{m3.group(2)}</div></details>')
+    # 5장: 설명·Moran 차트를 접고, 군집 목록은 그대로
+    s5 = secs[k5]
+    m5 = re.search(r'(<h2>.*?</h2>)\s*(<p class="sec-sub">.*?</p>.*?)(?=\s*<div class="cols")', s5, re.S)
+    assert m5, "5장 구조가 달라짐"
+    s5 = (m5.group(1) + '<p class="plain">이웃 지역의 폐업 흐름을 모형에 넣으니, 모형이 놓치던 ‘이웃끼리 닮은 패턴’이 사라졌어요.</p>'
+          f'<details class="stat"><summary>통계 상세 (심사·연구자용)</summary><div class="statbody">{m5.group(2)}</div></details>' + s5[m5.end():])
+    lim = secs[kl] + CODE_TABLE
+    return SUMMARY + implications(secs[k6]) + find + s1 + s2 + s3 + secs[k4] + s5 + lim
+
+
+CODE_TABLE = (
+    '<details class="stat"><summary>모형 이름 대응표 (연구자용)</summary><div class="statbody"><p class="cap" style="margin:0 0 8px">리포트의 모형 코드가 무엇을 넣은 모형인지 정리했어요. 최종 모형(M3L)은 Cox 비례위험 모형이에요.</p>'
+    '<div class="scroll"><table><thead><tr><th>코드</th><th>넣은 것</th></tr></thead><tbody>'
+    '<tr><td>M2</td><td>점포(사업장) 변수: 영업연수·프랜차이즈·입지·점포 규모·운영 특성 등</td></tr>'
+    '<tr><td>M2h</td><td>M2 + 지역·업종 조합의 직전 1년 폐업률</td></tr>'
+    '<tr><td>M3</td><td>M2h + BC카드 고객 성별·연령대 구성</td></tr>'
+    '<tr><td>M3L</td><td>M3 + 지역 폐업 흐름(이 시군구와 이웃 시군구의 이전 폐업 이력) — <b>최종 모형</b></td></tr>'
+    '<tr><td>M4</td><td>M3 + 경쟁밀도</td></tr>'
+    '<tr><td>M5J · M5D</td><td>M4 + 점포당 BC 소비·객단가 (각각 1월 · 6개월 기준)</td></tr>'
+    '<tr><td>M6</td><td>M4 + 추가 BC 특성 7개</td></tr>'
+    '<tr><td>M7</td><td>M4 + 지역·업종 조합 구성(프랜차이즈 비중·평균 영업연수·다중이용 비중)</td></tr>'
+    '</tbody></table></div></div></details>')
+
+
 def transform(h):
-    return transform_step1(h)
+    return step2(transform_step1(h))

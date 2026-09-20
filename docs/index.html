@@ -750,7 +750,7 @@ input[type=text]{min-width:min(260px,100%);flex:1}
 .city-lbl{font-size:12px;font-weight:600;color:#5b6472;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff;white-space:nowrap;pointer-events:none}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .city-lbl{color:#b7bfcc;text-shadow:0 0 3px #000,0 0 3px #000}}
 .panel h3{margin:0 0 2px;font-size:20px} .panel .sub2{color:var(--sub);font-size:var(--fs-sm)}
-.panel .clear{float:right;margin-left:var(--s2)} .only-m{display:none} @media (max-width:767px){.only-m{display:inline-block}div.only-m{display:block}}
+.panel .clear{margin-left:0} .only-m{display:none} @media (max-width:767px){.only-m{display:inline-block}div.only-m{display:block}}
 .big{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:var(--s2) 0 2px} .big b{font-size:38px;line-height:1}
 .big span{color:var(--sub);font-size:var(--fs-sm)}
 .t-hi{color:var(--hi-text)}.t-lo{color:var(--lo-text)} .big .delta{font-weight:700;font-size:var(--fs-md)}
@@ -783,6 +783,7 @@ input[type=text]{min-width:min(260px,100%);flex:1}
 .tbl th.srt[data-dir="desc"]::after{content:" ↓";opacity:1;color:var(--acc)}
 .tbl th.srt[data-dir="asc"]::after{content:" ↑";opacity:1;color:var(--acc)}
 .tbl th.srt:hover{color:var(--acc)}
+.tbl tr.clk td:first-child{white-space:nowrap}
 .tbl tr.clk{cursor:pointer}.tbl tr.clk:hover td:not([style]){background:var(--acc-soft)}.tbl tr.cur td:first-child{font-weight:700;box-shadow:inset 3px 0 0 var(--acc)}
 .tbl th,.tbl td{font-size:var(--fs-sm)}
 @media (max-width:520px){.fxrow{grid-template-columns:minmax(0,1fr) auto;row-gap:4px;margin:12px 0}.fxrow .val{grid-column:2;grid-row:1}.fxrow .trk{grid-column:1/3;grid-row:2}
@@ -829,6 +830,16 @@ th{font-size:var(--fs-sm)}
 .finding .n{color:var(--acc-fg)}
 @media (max-width:767px){table.grp{min-width:700px}table.grp .gname{min-width:150px}}
 #scat{overflow-x:auto}.scat{min-width:760px}
+.sitefoot{border-top:1px solid var(--line);margin-top:24px;padding:20px var(--s4) 40px;color:var(--sub);font-size:var(--fs-sm)}
+.sitefoot .in{max-width:1180px;margin:0 auto}.sitefoot ul{margin:6px 0 0;padding-left:20px}.sitefoot li{margin:3px 0}.sitefoot a{color:var(--acc)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:var(--fs-sm);opacity:0;pointer-events:none;transition:opacity .2s;z-index:100}
+.toast.on{opacity:1}
+.skel{display:flex;flex-direction:column;gap:12px;padding:6px 0}
+.skel i,#map:not(.leaflet-container){display:block;height:16px;border-radius:8px;background:linear-gradient(90deg,var(--line) 25%,var(--card) 45%,var(--line) 65%);background-size:200% 100%;animation:shim 1.3s infinite linear}
+@keyframes shim{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.skel i,#map:not(.leaflet-container){animation:none}}
+.phead{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s3);align-items:flex-start;justify-content:space-between}
+.acts{display:flex;flex-wrap:wrap;gap:6px}
 .hb{margin:6px 0}
 .hbrow{display:grid;grid-template-columns:minmax(132px,34%) minmax(0,1fr) 78px;gap:var(--s2);align-items:center;margin:9px 0;font-size:var(--fs-sm)}
 .hbrow .nm{line-height:1.3}.hbrow .val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -886,7 +897,7 @@ h2 .q,h3 .q,h4 .q{vertical-align:middle}
 <div class="hint" id="askhelp" style="margin:0 0 var(--s3)">지역·업종·위험/안전을 조합해 검색해 보세요. 예: <button class="chip-b" data-q="동탄 서양음식">동탄 서양음식</button> <button class="chip-b" data-q="합천 한식">합천 한식</button> <button class="chip-b" data-q="강남구">강남구</button> <button class="chip-b" data-q="한식 위험한 곳">한식 위험한 곳</button> <button class="chip-b" data-q="경남 한식 안전한 곳">경남 한식 안전한 곳</button></div>
 <div class="grid2">
 <div class="card mapcard"><div id="map" role="region" aria-label="시군구 버블 지도. 붉을수록 폐업 위험이 높고 푸를수록 낮아요. 같은 정보를 오른쪽 순위 카드와 검색으로도 볼 수 있어요."></div><div class="hint only-m" style="margin:6px 4px 2px">버블 크기 = 점포 수 · 점선 회색 = 표본 30개 미만(업종 선택 시)</div><div class="hint" id="tilenote" style="margin:2px 4px 0;color:var(--hi-text)"></div></div>
-<div class="card panel" id="panel"></div>
+<div class="card panel" id="panel"><div class="skel" aria-hidden="true"><i style="width:55%;height:26px"></i><i style="width:85%"></i><i style="width:70%"></i><i style="height:52px"></i><i style="height:52px"></i><i style="height:52px"></i></div></div>
 </div>
 </section>
 
@@ -965,6 +976,13 @@ h2 .q,h3 .q,h4 .q{vertical-align:middle}
 </ul></div>
 <details class="stat"><summary>모형 이름 대응표 (연구자용)</summary><div class="statbody"><p class="cap" style="margin:0 0 8px">리포트의 모형 코드가 무엇을 넣은 모형인지 정리했어요. 최종 모형(M3L)은 Cox 비례위험 모형이에요.</p><div class="scroll"><table><thead><tr><th>코드</th><th>넣은 것</th></tr></thead><tbody><tr><td>M2</td><td>점포(사업장) 변수: 영업연수·프랜차이즈·입지·점포 규모·운영 특성 등</td></tr><tr><td>M2h</td><td>M2 + 지역·업종 조합의 직전 1년 폐업률</td></tr><tr><td>M3</td><td>M2h + BC카드 고객 성별·연령대 구성</td></tr><tr><td>M3L</td><td>M3 + 지역 폐업 흐름(이 시군구와 이웃 시군구의 이전 폐업 이력) — <b>최종 모형</b></td></tr><tr><td>M4</td><td>M3 + 경쟁밀도</td></tr><tr><td>M5J · M5D</td><td>M4 + 점포당 BC 소비·객단가 (각각 1월 · 6개월 기준)</td></tr><tr><td>M6</td><td>M4 + 추가 BC 특성 7개</td></tr><tr><td>M7</td><td>M4 + 지역·업종 조합 구성(프랜차이즈 비중·평균 영업연수·다중이용 비중)</td></tr></tbody></table></div></div></details></section>
 </main>
+<footer class="sitefoot"><div class="in"><b>데이터와 고지</b>
+<ul><li><b>데이터 출처:</b> LOCALDATA 인허가 4종(일반음식점·휴게음식점·제과점영업·대규모점포)의 폐업일자, 공모전 제공 BC카드 ABP 데이터(시군구 × 업종 월 집계).</li>
+<li><b>분석 기간:</b> 2026-01-01에 영업 중이던 점포를 2026-06-30까지 추적했어요(180일). BC카드 소비는 2026-01~06 자료예요.</li>
+<li><b>고지:</b> 화면의 모든 수치는 통계적 연관이며 인과나 정책 효과가 아니에요. 표본이 적은 곳은 우연 변동이 커요.</li>
+<li><b>문의·소스:</b> <a href="https://github.com/ahnseo0000/BC_card" target="_blank" rel="noopener">GitHub 저장소</a>에 이슈로 남겨 주세요.</li></ul></div></footer>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<noscript><p style="padding:16px">이 지도는 JavaScript가 필요해요. 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
 
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -1174,7 +1192,7 @@ function renderPanel(){
   const p=$('#panel'); if(S.sel===null) return; const r=S.sel,R=D.regions[r],b=S.biz,v=val(r,b);
   const nm=R.sido+' '+R.name;
   S.home=false;
-  let h='<button class="chip-b clear" data-act="clear">✕ 선택 해제</button><button class="chip-b clear only-m" data-act="tomap">↑ 지도 보기</button><h3>'+nm+'</h3><div class="sub2">'+(b>=0?BIZ[b]:'전체 7개 업종')+' · 점포 '+(v?v.n.toLocaleString():0)+'개</div>';
+  let h='<div class="phead"><div><h3>'+nm+'</h3><div class="sub2">'+(b>=0?BIZ[b]:'전체 7개 업종')+' · 점포 '+(v?v.n.toLocaleString():0)+'개</div></div><div class="acts"><button class="chip-b only-m" data-act="tomap">↑ 지도 보기</button><button class="chip-b" data-act="copy" title="지금 화면의 주소를 복사해요">링크 복사</button><button class="chip-b" data-act="csv" title="이 지역의 업종별 값을 CSV로 저장해요">CSV 저장</button><button class="chip-b" data-act="clear">✕ 선택 해제</button></div></div>';
   if(!v){$('#panel').innerHTML=h+'<p class="hint">이 시군구에는 해당 업종 점포가 없습니다.</p>'+bizRows(r);bindPanel(p);return;}
   const up=v.mult>=1;
   h+='<div class="sub2 hasq" style="margin-top:6px">폐업 위험도'+qtip(TIP_RISK)+'</div><div class="big"><b class="'+(up?'t-hi':'t-lo')+'">×'+v.mult.toFixed(2)+'</b><span class="delta '+(up?'t-hi':'t-lo')+'">'+DELTA(v.mult)+'</span></div>';
@@ -1195,6 +1213,8 @@ function bindPanel(p){
   p.querySelectorAll('table.sortable').forEach(makeSortable);
   p.querySelectorAll('tr[data-b]').forEach(x=>x.addEventListener('click',()=>{setBiz(+x.dataset.b);}));
   p.querySelectorAll('[data-act="clear"]').forEach(x=>x.addEventListener('click',clearSel));
+  p.querySelectorAll('[data-act="copy"]').forEach(x=>x.addEventListener('click',copyLink));
+  p.querySelectorAll('[data-act="csv"]').forEach(x=>x.addEventListener('click',()=>downloadCsv(S.sel)));
   p.querySelectorAll('[data-act="tomap"]').forEach(x=>x.addEventListener('click',()=>$('#map').scrollIntoView({behavior:'smooth',block:'center'})));
 }
 // 순위 기준은 기존 순위 질문과 같다: 전체 업종은 점포 2,000개 이상 시군구, 업종을 고르면 300개 이상 그룹
@@ -1236,9 +1256,26 @@ const SIDOS=[...new Set(D.regions.map(r=>r.sido))];
 const sidoOf=t=>SIDOALIAS[t]||SIDOS.find(x=>t.length>=2&&x.includes(t));
 const rname=i=>D.regions[i].sido.replace(/특별시|광역시|특별자치도|특별자치시/,'')+' '+D.regions[i].name;
 function say(html){S.home=false;$('#panel').innerHTML=html;bindGo($('#panel'));syncUrl();}
-function syncUrl(){   // 현재 지역·업종을 URL에 저장한다(?q=서울특별시 마포구&industry=서양음식) — 복사한 링크로 같은 화면이 열린다
+function toast(m){const el=$('#toast');el.textContent=m;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('on'),2200);}
+async function copyLink(){
+  const u=location.href;
+  try{await navigator.clipboard.writeText(u);}
+  catch(e){const ta=document.createElement('textarea');ta.value=u;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e2){}ta.remove();}
+  toast('링크를 복사했어요');
+}
+function downloadCsv(r){   // 선택한 시군구의 업종별 값(화면 데이터 그대로)을 CSV로 저장. 엑셀에서 한글이 깨지지 않게 BOM을 붙인다
+  if(r===null||r===undefined)return;const R=D.regions[r],nm=R.sido+' '+R.name;
+  const rows=[['시군구','업종','점포 수','실제 폐업률(%)','폐업 위험도(배수)'].concat(SHOW.map(s=>s.label+'(배수)'))];
+  [-1].concat(BIZ.map((n,i)=>i)).forEach(b=>{const v=val(r,b);if(!v)return;rows.push([nm,b<0?'전체 업종':BIZ[b],v.n,(v.rate*100).toFixed(2),v.mult].concat(factors(v.x).map(d=>d.m.toFixed(3))));});
+  const csv='\ufeff'+rows.map(x=>x.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='상권생존지도_'+nm.replace(/\s+/g,'_')+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('CSV를 저장했어요');
+}
+const fullName=i=>D.regions[i].sido+' '+D.regions[i].name;
+function syncUrl(){   // 현재 지역·업종을 URL에 저장한다(?region=서울특별시 마포구&industry=서양음식, 비교는 &compare=서울특별시 강남구) — 복사한 링크로 같은 화면이 열린다
   try{const P=new URLSearchParams(location.search);
-    if(S.sel!==null)P.set('q',D.regions[S.sel].sido+' '+D.regions[S.sel].name);else if(S.lastQ)P.set('q',S.lastQ);else P.delete('q');
+    P.delete('compare');   // 지도 상태가 바뀌면 두 지역 비교 링크 상태는 끝난 것
+    if(S.sel!==null){P.set('region',fullName(S.sel));P.delete('q');}else{P.delete('region');if(S.lastQ)P.set('q',S.lastQ);else P.delete('q');}
     if(S.biz>=0)P.set('industry',BIZ[S.biz]);else P.delete('industry');
     const qs=P.toString();history.replaceState(null,'',location.pathname+(qs?'?'+qs:'')+location.hash);}catch(e){}
 }
@@ -1354,6 +1391,7 @@ RB.addEventListener('change',rank);rank();
   document.querySelectorAll('#rg-hi tr[data-r],#rg-lo tr[data-r]').forEach(tr=>tr.addEventListener('click',()=>{const i=+tr.dataset.r;setBizQuiet(-1);tab('map');setTimeout(()=>select(i,true),90);}));
 })();
 
+let cmpRestore=null;
 (function(){ // 두 지역 비교: 같은 업종 기준으로 요인 막대를 같은 순서로 나란히 놓는다
   $('#cmpBiz').innerHTML='<option value="-1">전체 업종</option>'+BIZ.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join('');
   const find=t=>{t=t.trim();if(!t)return -1;let i=D.regions.findIndex(r=>(r.sido+' '+r.name)===t);if(i>=0)return i;
@@ -1361,16 +1399,20 @@ RB.addEventListener('change',rank);rank();
   const card=(i,v,order)=>'<div><h4>'+rname(i)+'</h4><div class="big"><b class="'+(v.mult>=1?'t-hi':'t-lo')+'">×'+v.mult.toFixed(2)+'</b><span class="delta '+(v.mult>=1?'t-hi':'t-lo')+'">'+DELTA(v.mult)+'</span></div><div class="sub2" style="color:var(--sub)">실제 폐업률 '+pct(v.rate)+' · 점포 '+v.n.toLocaleString()+'개</div><div class="blk">'+whyChart(v.x,order)+'</div><button type="button" class="chip-b" data-go="'+i+'">지도에서 보기</button></div>';
   function show(){
     const a=find($('#cmpA').value),b=find($('#cmpB').value),bz=+$('#cmpBiz').value,out=$('#cmpOut');
-    if(a<0||b<0){out.innerHTML='<p class="hint">'+((!$('#cmpA').value.trim()&&!$('#cmpB').value.trim())?'두 지역을 고르면 폐업 위험도와 요인 막대를 나란히 보여 줘요.':'지역 이름을 목록에서 골라 주세요. 이름이 여러 곳과 겹치면 “서울특별시 마포구”처럼 시도까지 써 주세요.')+'</p>';return;}
+    if(a<0||b<0){cmpUrl('','',bz);out.innerHTML='<p class="hint">'+((!$('#cmpA').value.trim()&&!$('#cmpB').value.trim())?'두 지역을 고르면 폐업 위험도와 요인 막대를 나란히 보여 줘요.':'지역 이름을 목록에서 골라 주세요. 이름이 여러 곳과 겹치면 “서울특별시 마포구”처럼 시도까지 써 주세요.')+'</p>';return;}
     const va=val(a,bz),vb=val(b,bz);
     if(!va||!vb){out.innerHTML='<p class="hint">선택한 업종의 점포가 없는 지역이 있어 비교할 수 없어요. 업종을 바꿔 보세요.</p>';return;}
     const fa=factors(va.x),fb=factors(vb.x),lg=m=>Math.log(m);
     const order=fa.map(d=>d.key).sort((k1,k2)=>{const g=k=>Math.max(Math.abs(lg(fa.find(d=>d.key===k).m)),Math.abs(lg(fb.find(d=>d.key===k).m)));return g(k2)-g(k1);});
     const dk=fa.filter(d=>d.key!=='age').map(d=>({d,e:fb.find(z=>z.key===d.key),gap:Math.abs(lg(d.m)-lg(fb.find(z=>z.key===d.key).m))})).sort((x,y)=>y.gap-x.gap)[0];
     out.innerHTML='<div class="cmp">'+card(a,va,order)+card(b,vb,order)+'</div><p class="cmpdiff">두 지역의 가장 큰 차이는 <b>'+dk.d.label+'</b>이에요 ('+rname(a)+' ×'+dk.d.m.toFixed(2)+' · '+rname(b)+' ×'+dk.e.m.toFixed(2)+'). 요인 배수를 모두 곱하면 각 지역의 폐업 위험도가 돼요.</p>'+
-      '<p class="cap">같은 업종 기준('+(bz>=0?BIZ[bz]:'전체 업종')+')이며 통계적 연관이지 원인은 아니에요. 옅은 막대(BC카드 고객 연령대)는 참고용이라 차이 비교에서 뺐어요.</p>';
+      '<p class="cap"><button type="button" class="chip-b" data-act="copy">링크 복사</button> 같은 업종 기준('+(bz>=0?BIZ[bz]:'전체 업종')+')이며 통계적 연관이지 원인은 아니에요. 옅은 막대(BC카드 고객 연령대)는 참고용이라 차이 비교에서 뺐어요.</p>';
     out.querySelectorAll('[data-go]').forEach(x=>x.addEventListener('click',()=>{const i=+x.dataset.go;setBizQuiet(bz);tab('map');setTimeout(()=>select(i,true),90);}));
+    out.querySelectorAll('[data-act="copy"]').forEach(x=>x.addEventListener('click',copyLink));
+    cmpUrl(fullName(a),fullName(b),bz);
   }
+  function cmpUrl(a,b,bz){try{const P=new URLSearchParams(location.search);P.delete('q');if(a&&b){P.set('region',a);P.set('compare',b);}else{P.delete('compare');}if(bz>=0)P.set('industry',BIZ[bz]);else P.delete('industry');const qs=P.toString();history.replaceState(null,'',location.pathname+(qs?'?'+qs:'')+location.hash);}catch(e){}}
+  cmpRestore=(a,b,bz)=>{$('#cmpA').value=a;$('#cmpB').value=b;$('#cmpBiz').value=String(bz);show();};
   ['cmpA','cmpB'].forEach(id=>{$('#'+id).addEventListener('change',show);$('#'+id).addEventListener('input',()=>{if(find($('#'+id).value)>=0)show();});});
   $('#cmpBiz').addEventListener('change',show);
 })();
@@ -1383,9 +1425,10 @@ renderLegend();renderHome();update();
 $('#btn-nat').addEventListener('click',clearSel);$('#btn-sudo').addEventListener('click',goSudo);
 const aq=new URLSearchParams(location.search).get('area');if(aq){$('#areaq').value=aq;areaShow();}
 const bizFromName=v=>{const i=BIZ.indexOf(v);if(i>=0)return i;for(const k in BIZKEY)if(v.includes(k))return BIZKEY[k];return -1;};
-const qP=UP.get('q'),bi=UP.get('industry')?bizFromName(UP.get('industry')):-1;
+const qP=UP.get('region')||UP.get('q'),cP=UP.get('compare'),bi=UP.get('industry')?bizFromName(UP.get('industry')):-1;   // 옛 링크의 ?q= 도 그대로 열린다
 if(bi>=0)setBizQuiet(bi);
-if(qP){$('#ask').value=qP;ask(bi>=0);}else if(bi>=0){update();renderHome();}
+if(cP&&qP){update();renderHome();tab('area');cmpRestore(qP,cP,bi);}   // 초기 렌더가 주소를 정리한 뒤 비교 상태를 복원한다
+else if(qP){$('#ask').value=qP;ask(bi>=0);}else if(bi>=0){update();renderHome();}
 (function(){ // 첫 방문자용 3단계 가이드(닫으면 이 브라우저에서 다시 보이지 않는다). 링크로 들어온 경우엔 띄우지 않는다
   let seen=false;try{seen=localStorage.getItem('bc_guide_v1')==='1';}catch(e){}
   const g=$('#guide');if(!seen&&!qP){g.hidden=false;document.body.classList.add('guide-on');}

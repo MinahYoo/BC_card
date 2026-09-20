@@ -162,6 +162,25 @@ details.stat[open]>summary{border-bottom:1px solid var(--line)}
 .imp dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:var(--fs-sm)}
 .imp dt{font-weight:700;color:var(--acc);white-space:nowrap}.imp dd{margin:0}
 .lgbox{margin:0 0 12px}
+/* 정보 단위 차이 다이어그램 · 모니터링 예시 카드 */
+.unitgap{margin:0 0 var(--s4)}.unitgap h3{margin:0 0 var(--s2)}
+.flows{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:var(--s3);margin:var(--s3) 0}
+.flow{border:1px dashed var(--line);border-radius:var(--r-md);padding:var(--s3) var(--s4);text-align:center;background:var(--card)}
+.flow.next{border-style:solid;border-color:var(--accent);background:var(--accent-tint)}
+.flow .fk{margin:0 0 var(--s2);font-size:var(--fs-sm);font-weight:700;color:var(--sub)}.flow.next .fk{color:var(--accent-strong)}
+.fbox{padding:var(--s2) var(--s3);border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card);font-weight:600}
+.farr{margin:2px 0;color:var(--sub)}.flow .fnote{margin:var(--s2) 0 0;font-size:var(--fs-sm);font-weight:700}
+.monitor{margin-top:var(--s4);padding:var(--s4) var(--s5)}
+.mhead{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s3);justify-content:space-between}.mhead h3{margin:0}
+.mname{margin:var(--s2) 0;font-size:var(--fs-lg)}
+.mrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:var(--s3) var(--s5)}
+.monitor .mk{margin:var(--s2) 0 var(--s1);font-size:var(--fs-sm);font-weight:700;color:var(--accent)}.monitor .mv{margin:0}
+.msig{margin:0;padding-left:20px}.msig li{margin:3px 0}
+.mnext{margin:0 0 var(--s2)}
+.mflow{display:flex;flex-wrap:wrap;gap:var(--s2);list-style:none;margin:var(--s2) 0;padding:0;counter-reset:mf}
+.mflow li{counter-increment:mf;padding:6px 14px;border-radius:999px;background:var(--accent-tint);border:1px solid var(--accent);font-weight:600}
+.mflow li::before{content:counter(mf) ". ";color:var(--accent-strong)}
+.mflow li:not(:last-child)::after{content:"→";margin-left:12px;color:var(--sub)}
 /* 지도 결과 카드: 수준 → 상대 위험(모델 계산) / 실제 폐업률(관측) → 왜 */
 .lvl{display:flex;align-items:center;gap:var(--s2);margin:var(--s2) 0}.lvl-k{font-size:var(--fs-sm);color:var(--sub)}
 .lvl b{padding:2px 14px;border-radius:999px;font-size:var(--fs-md)}
@@ -805,13 +824,13 @@ let cmpRestore=null;
 
 // 생존 분석(모형 근거) 탭 ↔ 지도 연결: 지금 선택한 지역·업종에서 가장 크게 작용한 요인과 그 근거 차트
 const SURVMAP={   // 요인 → 근거 차트 카드 id, 강조할 행 라벨, 차트 이름 (모두 표시용 연결표)
-  yrs:{c:'chart-c',rows:['영업연수'],name:'점포 단위 판별력 차트'},
-  fr:{c:'chart-c',rows:['프랜차이즈'],name:'점포 단위 판별력 차트'},
-  site:{c:'chart-c',rows:['점포 규모·운영 특성'],name:'점포 단위 판별력 차트'},
-  hist:{c:'chart-s',rows:['지역 폐업 흐름'],name:'지역 간 순위 차트'},
-  gen:{c:'chart-w',rows:['BC카드 고객 성별'],name:'같은 시군구 안 순위 차트'},
-  biz:{c:'chart-w',rows:['업종'],name:'같은 시군구 안 순위 차트'},
-  etc:{c:'chart-c',rows:['입지','지역·업종 직전 폐업률'],name:'점포 단위 판별력 차트'}};
+  yrs:{c:'chart-c',rows:['영업연수'],name:'점포 위험 구분 성능 차트'},
+  fr:{c:'chart-c',rows:['프랜차이즈'],name:'점포 위험 구분 성능 차트'},
+  site:{c:'chart-c',rows:['점포 규모·운영 특성'],name:'점포 위험 구분 성능 차트'},
+  hist:{c:'chart-s',rows:['지역 폐업 흐름'],name:'지역 간 위험 순위 차트'},
+  gen:{c:'chart-w',rows:['BC카드 고객 성별'],name:'같은 시군구 안 위험 순위 차트'},
+  biz:{c:'chart-w',rows:['업종'],name:'같은 시군구 안 위험 순위 차트'},
+  etc:{c:'chart-c',rows:['입지','지역·업종 직전 폐업률'],name:'점포 위험 구분 성능 차트'}};
 function renderSurvLink(){
   const el=$('#survlink');if(!el)return;el.hidden=false;
   if(S.sel===null){el.innerHTML='<b>지도와 연결</b> 지도에서 지역을 고르면, 그 지역에서 가장 크게 작용한 요인의 근거를 여기서 바로 볼 수 있다. <button type="button" class="chip-b" data-go-tab="map">지도로 가기</button>';return;}
@@ -836,8 +855,25 @@ function fitMap(){
 }
 let fitT;window.addEventListener('resize',()=>{clearTimeout(fitT);fitT=setTimeout(fitMap,120);});
 
+// 시사점 아래 “집중 모니터링 후보(예시)” 카드 — 데이터의 위험 상위 조합(점포 300개 이상)을 그대로 보여 준다. 실제 서비스 화면이 아니라 활용 예시
+const SIGNAL={yrs:['영업연수가 짧음','영업연수가 김'],fr:['프랜차이즈 비중이 낮음','프랜차이즈 비중이 높음'],site:['점포 규모·운영 특성이 위험한 쪽','점포 규모·운영 특성이 안정적인 쪽'],hist:['지역 폐업 흐름이 높음','지역 폐업 흐름이 낮음'],gen:['고객 성별 구성이 위험한 쪽','고객 성별 구성이 안정적인 쪽'],biz:['업종 자체의 위험이 높음','업종 자체의 위험이 낮음'],etc:['입지 등 기타 요인이 위험한 쪽','입지 등 기타 요인이 안정적인 쪽']};
+function renderMonitor(){
+  const el=$('#monitor');if(!el)return;
+  let r=null,b=-1;
+  if(S.sel!==null&&S.biz>=0){const v0=val(S.sel,S.biz);if(v0&&v0.n>=300&&LEVEL(v0.mult).k==='hi'){r=S.sel;b=S.biz;}}   // 지도에서 고른 조합이 위험 ‘높음’이면 그것을 예시로
+  if(r===null){const g=D.groups.filter(x=>x.n>=300).sort((x,y)=>y.mult-x.mult)[0];r=g.r;b=g.b;}
+  const v=val(r,b),f=factors(v.x).filter(d=>d.key!=='age'&&d.m>=1.03).sort((x,y)=>y.m-x.m).slice(0,3);
+  el.innerHTML='<div class="mhead"><h3>집중 모니터링 후보 (예시)</h3><span class="ubadge">예시 화면 · 실제 서비스가 아님</span></div>'+
+   '<p class="mname"><b>'+rname(r)+' · '+BIZ[b]+'</b></p>'+
+   '<div class="mrow"><div><p class="mk">위험 수준</p><p class="mv"><span class="lvl lv-hi"><b>▲ 높음</b></span> <span class="hint">상대 폐업 위험 ×'+v.mult.toFixed(2)+'(평균 점포 = ×1.0)</span></p></div>'+
+   '<div><p class="mk">주요 위험 신호</p><ul class="msig">'+f.map(d=>'<li>'+SIGNAL[d.key][0]+' <span class="tag hi">▲ ×'+d.m.toFixed(2)+'</span></li>').join('')+'</ul></div></div>'+
+   '<p class="mk">다음 단계</p><p class="mnext"><b>BC 가맹점별 매출 추이 확인.</b> 최근 매출까지 지속적으로 감소한 점포라면 우선 모니터링 대상으로 선정할 수 있다.</p>'+
+   '<ol class="mflow"><li>상권 위험 감지</li><li>위험 원인 확인</li><li>가맹점 매출 확인</li><li>집중 모니터링</li></ol>'+
+   '<p class="hint">현재 데이터만으로 개별 가맹점의 폐업을 확정적으로 예측하거나 조치를 자동으로 결정하지는 않는다. 점포별 매출 데이터를 결합했을 때의 활용 방식을 보여 주는 예시이며, 표시한 위험은 지역·업종 조합 수준의 연관이다.</p>';
+}
+
 // ---------- 탭 ----------
-function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===t));document.querySelectorAll('section.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));history.replaceState(null,'','#'+t);window.scrollTo(0,0);if(t==='map')setTimeout(()=>{fitMap();map.invalidateSize();},50);if(t==='surv')renderSurvLink();}
+function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===t));document.querySelectorAll('section.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));history.replaceState(null,'','#'+t);window.scrollTo(0,0);if(t==='map')setTimeout(()=>{fitMap();map.invalidateSize();},50);if(t==='surv'){renderSurvLink();renderMonitor();}}
 document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>tab(x.dataset.t)));
 if(location.hash&&$('#t-'+location.hash.slice(1)))tab(location.hash.slice(1));
 window.addEventListener('hashchange',()=>{const k=location.hash.slice(1);if($('#t-'+k)&&!$('#t-'+k).classList.contains('on'))tab(k);});   // 같은 문서에서 #surv 등으로 바꿔도 탭이 열린다

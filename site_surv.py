@@ -339,6 +339,7 @@ def implications(sec):
         assert head == h0, f"시사점 문구가 달라짐: {head}"
         out.append(f'<div class="imp primary"><h4>{head}</h4><dl><dt>누가</dt><dd>{who}</dd><dt>무엇을</dt><dd>{what}</dd><dt>어떤 데이터로</dt><dd>{data}</dd></dl><p class="cap" style="margin:6px 0 0">{body.strip()}</p></div>')
     out.append("</div>")
+    out.append('<div id="monitor" class="monitor card" aria-live="polite"></div>')     # 채우는 곳: 앱 스크립트(renderMonitor) — 데이터에서 읽는 예시 카드
     return "".join(out)
 
 
@@ -445,6 +446,14 @@ def _band(html, eyebrow, alt=False, first=False):
     return f'<div class="band{" alt" if alt else ""}{" first" if first else ""}">{html}</div>'
 
 
+UNITGAP = (
+    '<div class="unitgap"><h3>소비 데이터가 중요하지 않았던 것이 아니다</h3>'
+    '<p class="plain">데이터의 분석 단위가 달라서, <b>지역 × 업종 단위 소비 정보</b>를 더해도 <b>개별 점포의 폐업 위험</b>을 추가로 구분하기 어려웠다.</p>'
+    '<div class="flows"><div class="flow now"><p class="fk">현재 데이터</p><div class="fbox">지역 × 업종 소비</div><div class="farr" aria-hidden="true">↓</div><div class="fbox">개별 점포 폐업 예측</div><p class="fnote">정보 단위 차이 존재</p></div>'
+    '<div class="flow next"><p class="fk">향후 BC 내부 데이터 (활용 가능성)</p><div class="fbox">점포별 매출 변화</div><div class="farr" aria-hidden="true">↓</div><div class="fbox">개별 점포 폐업 예측</div><p class="fnote">조기경보로 확장 가능</p></div></div>'
+    '<p class="hint">점포별 매출 데이터를 결합했을 때의 결과는 이번 분석에서 확인하지 않았다. 위 오른쪽 구조는 활용 방향을 보여 주는 것이다.</p></div>')
+
+
 def perf():
     """최종 모델 성능(이미 리포트에 있는 값): 점포 단위 C-index(리포트 KPI), 지역·업종 순위 일치도 0.594 / 같은 시군구 안 0.455(1장 본문)."""
     cards = [("점포 위험 구분", "store", META["c_full"], "실제로 먼저 폐업한 점포를 모델이 더 위험하다고 판단하는 정도이다. 0.5는 무작위, 1에 가까울수록 잘 맞는다. 0.5보다는 높지만 완벽에는 못 미치는 중간 정도이다.", "C-index · 학습에 쓰지 않은 지역·업종 조합 기준"),
@@ -504,6 +513,9 @@ def step2(h):
     s2 = _fold(secs[k2], "폐업률 차이는 업종보다 지역에 따라 더 크게 나타났다. 어떤 업종인지보다 어느 지역에 있는지가 지역 간 폐업률 차이를 설명하는 데 더 많은 정보를 제공했다(설명하는 정도: 시군구만 0.44, 업종만 0.12).")
     # 3장: 소비 3분위 차트는 그대로 두고, 통계 표만 접는다
     s3 = secs[k3]
+    m0 = re.search(r'<p class="sec-sub">.*?</p>', s3, re.S)
+    assert m0, "3장 sec-sub 없음"
+    s3 = s3[:m0.end()] + UNITGAP + s3[m0.end():]
     m3 = re.search(r"(<h3>모형에 더해 본 변수와 결과.*?</h3>.*?</p>)\s*(<div class=\"scroll\">.*?</div>)", s3, re.S)
     assert m3, "3장 표 구조가 달라짐"
     s3 = s3.replace(m3.group(0), '<p class="plain">소비·객단가·경쟁밀도 등을 더해 봐도 예측이 좋아지지 않았지만, 이는 BC카드 데이터가 쓸모없다는 뜻이 아니라 정보의 단위가 다르기 때문이다(아래 표의 판정은 모두 “개선 없음”).</p>'

@@ -3,7 +3,7 @@
 상권 생존 분석 웹사이트 site/index.html 을 만든다 (서버 없는 단일 HTML; GitHub Pages 등 정적 호스팅에 그대로 올릴 수 있다).
 
 탭: 지도 탐색(시군구 버블 지도 · 업종 필터 · 위험 배수 · "왜" 요인 분해 · BC 구성/월별 · 이웃 5곳 · 규칙 기반 설명 입력창)
-    상권 분석(시군구 프로필 · 업종별 위험 순위 · 소비-폐업 산점도) / 생존 분석(리포트 본문) / 방법·한계
+    상권 분석(시군구 프로필 · 업종별 위험 순위 · 소비-폐업 산점도) / 생존 분석(리포트 본문)
 사전 조건: prep_site_data.py 실행(output/site_data.json). 생존 분석 탭은 build_report.py의 본문을 그대로 재사용한다.
 모든 수치는 분석 산출물에서 왔고, 설명 문장은 규칙으로 만든다(LLM 없음 -> 값이 틀리거나 지어질 수 없다).
 """
@@ -158,7 +158,7 @@ __EXTRA__</style></head><body>
 <div class="brand">상권 생존 지도<span>BC카드 소비데이터 공모전</span></div>
 <nav id="nav" role="tablist">
 <button data-t="map" aria-selected="true">지도 탐색<small>위험 지도로 보기</small></button><button data-t="area" aria-selected="false">상권 분석<small>업종·지역 비교</small></button>
-<button data-t="surv" aria-selected="false">생존 분석<small>얼마나 오래 버티나</small></button><button data-t="method" aria-selected="false">방법 · 한계<small>근거와 주의점</small></button></nav>
+<button data-t="surv" aria-selected="false">생존 분석<small>얼마나 오래 버티나</small></button></nav>
 </div></div>
 <main class="wide">
 
@@ -197,22 +197,6 @@ __EXTRA__</style></head><body>
 </section>
 
 <section class="tab" id="t-surv">__SURV__</section>
-
-<section class="tab" id="t-method">
-<div class="hero"><h1>방법과 한계</h1></div>
-<div class="card"><ul>
-<li><b>대상·결과:</b> LOCALDATA 인허가 4종의 2026-01-01 영업 중 점포(7개 업종, __N__개)를 2026-06-30까지 180일 추적, 폐업 __EV__건(__RATE__%).</li>
-<li><b>모형(M3L):</b> Cox 비례위험 모형. 사업장 변수(영업연수·프랜차이즈·입지·사업장 특성) + 그룹 직전 1년 폐업률 + 자기·이웃 시군구 폐업 이력(1/1 이전 정보만) + BC카드 성별·연령 구성 + 업종.</li>
-<li><b>“왜” 분해:</b> 선형예측자를 요인별 기여 β·(x−평균)로 정확히 분해(오차 10⁻¹⁵). exp(기여) = 평균 점포 대비 배수, 요인 배수의 곱 = 위험 배수. <b>연관이며 인과가 아닙니다.</b></li>
-<li><b>검증:</b> 그룹 5-fold, 시군구 5-fold. 신뢰구간은 시군구 단위 부트스트랩. 미학습 그룹 점포 단위 C-index 0.637(0.5 = 무작위)로 중간 정도의 판별력입니다.</li>
-<li><b>BC 데이터의 한계:</b> 시군구×업종 평균이라 점포 매출이 아닙니다. 연령 구성은 같은 시군구 안에서 위험을 가르지 못했고 지역 유형 신호로 읽어야 합니다. 소비 규모·객단가·성장률은 예측을 개선하지 못했습니다(3장 표).</li>
-<li><b>지도:</b> 시군구 경계가 아니라 시군구 내 점포 좌표의 중앙값(EPSG:5174를 위·경도로 변환, 오차 수백 m)에 놓은 버블입니다. 배경 지도는 OpenStreetMap 타일(회색조)이며 인터넷 연결이 필요합니다(끊겨도 버블·패널은 동작). 2026년 개편 지역명을 그대로 씁니다. 그룹당 점포가 30개 미만이면 실제 폐업률이 불안정해 회색 점선으로 표시합니다.</li>
-<li><b>설명 문장:</b> 규칙으로 만든 문장이며 LLM을 쓰지 않습니다. 숫자는 모두 위 분해 결과에서 옵니다.</li>
-<li><b>화면 용어:</b> 지도 탭의 “폐업 위험도”는 위 모형(M3L)이 계산한 “위험 배수”(평균 점포 = ×1.0)입니다. 폐업률은 단순 비율이라 순위가 다를 수 있고, 위험 배수는 영업연수·규모 등을 통제한 뒤 평균 점포와 비교한 값입니다.</li>
-<li><b>검색창의 범위:</b> 정해진 형식(지역 + 업종, 지역만, 업종 + 위험/안전)만 이해하는 규칙 기반이며 LLM이 아닙니다. 업종은 한식·일식·중식·서양음식·스낵·제과점·편의점 7개뿐이고, 카페·치킨 등 다른 업종, 두 지역 비교, 시점별 추세, 예측 질문은 지원하지 않습니다. 점포 수가 적은 곳(전체 2,000개·업종별 300개 미만)은 순위에서 제외합니다.</li>
-<li><b>주의:</b> 6개월 관측 창 하나, 프랜차이즈는 수작업 브랜드 목록 기반, 연령 코드 정의(1~6)는 원자료 명세로 재확인이 필요합니다. 배수는 정책 효과가 아닙니다.</li>
-</ul></div>
-</section>
 </main>
 
 <script>__LEAFLET_JS__</script>
@@ -485,7 +469,7 @@ function syncUrl(){   // 현재 지역·업종을 URL에 저장한다(?q=서울�
 }
 const EX=['동탄 서양음식','합천 한식','마포구 제과점','강남구','한식 위험한 곳','서울 제과점 안전한 곳'];
 const HELP='<div class="blk" style="border:0;margin-top:8px;padding-top:0"><h4 style="color:var(--fg);font-size:16px">이렇게 검색해 보세요</h4><div class="nb">'+EX.map(q=>'<button type="button" data-q="'+q+'">'+q+'</button>').join('')+'</div>'+
- '<p class="hint" style="margin:8px 0 0">지역은 시군구 이름의 일부만 써도 돼요(동탄, 합천). 업종은 한식·일식·중식·서양(양식)·스낵(분식)·제과점(빵)·편의점 중에서 고를 수 있어요. 자세한 범위는 “방법 · 한계” 탭에 있어요.</p></div>';
+ '<p class="hint" style="margin:8px 0 0">지역은 시군구 이름의 일부만 써도 돼요(동탄, 합천). 업종은 한식·일식·중식·서양(양식)·스낵(분식)·제과점(빵)·편의점 중에서 고를 수 있어요.</p></div>';
 function ask(keepBiz){   // keepBiz: 딥링크 복원 때 URL의 업종을 유지
   const q=$('#ask').value.replace(/\s+/g,' ').trim(); if(!q) return; S.lastQ=q;
   const esc=q.replace(/</g,'&lt;');

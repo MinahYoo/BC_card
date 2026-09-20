@@ -140,13 +140,19 @@ details.stat[open]>summary{border-bottom:1px solid var(--line)}
 .imp dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:var(--fs-sm)}
 .imp dt{font-weight:700;color:var(--acc);white-space:nowrap}.imp dd{margin:0}
 .lgbox{margin:0 0 12px}
+.survlink{background:var(--acc-soft);border:1px solid var(--acc);border-radius:var(--r);padding:10px var(--s4);margin:8px 0;font-size:var(--fs-md)}
+.survlink a{color:var(--acc);font-weight:600}
+table.ov{min-width:560px}
+table.ov th{white-space:normal;vertical-align:bottom}table.ov th small{font-weight:400;color:var(--sub);font-size:var(--fs-sm)}
+table.ov th[scope=row],table.ov thead th:first-child{position:sticky;left:0;z-index:2;background:var(--card);text-align:left;font-weight:600;color:var(--fg);box-shadow:1px 0 0 var(--line)}
+table.ov td.ovc{text-align:center;font-variant-numeric:tabular-nums;font-size:var(--fs-sm)}
 .concl{margin:2px 0 6px;font-size:var(--fs-md)}
 .stat-number{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:2px 0 6px}
 .stat-number .num{font-size:28px;line-height:1.2;color:var(--acc);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .stat-number .lbl{color:var(--sub);font-size:var(--fs-sm)}
 details.tech{margin-top:2px}details.tech>summary{cursor:pointer;color:var(--acc);font-size:var(--fs-sm);font-weight:600}
 details.tech>p{margin:6px 0 0;color:var(--sub);font-size:var(--fs-sm)}
-.toc{position:sticky;top:var(--head-h);z-index:15;display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding:8px 0;margin:6px 0 4px;background:var(--bg);border-bottom:1px solid var(--line)}
+.toc{position:sticky;top:var(--head-h);z-index:15;display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;white-space:nowrap;padding:8px 0;margin:6px 0 4px;background:var(--bg);border-bottom:1px solid var(--line)}
 .toc a.chip-b{text-decoration:none;flex:none}.toc a.chip-b.on{background:var(--acc);color:var(--acc-fg);border-color:var(--acc)}
 #t-surv h2{scroll-margin-top:calc(var(--head-h) + 64px)}
 @media (max-width:767px){.toc{top:0}#t-surv h2{scroll-margin-top:64px}}
@@ -710,8 +716,31 @@ let cmpRestore=null;
   window.addEventListener('scroll',upd,{passive:true});
 })();
 
+// 생존 분석(모형 근거) 탭 ↔ 지도 연결: 지금 선택한 지역·업종에서 가장 크게 작용한 요인과 그 근거 차트
+const SURVMAP={   // 요인 → 근거 차트 카드 id, 강조할 행 라벨, 차트 이름 (모두 표시용 연결표)
+  yrs:{c:'chart-c',rows:['영업연수'],name:'점포 단위 판별력 차트'},
+  fr:{c:'chart-c',rows:['프랜차이즈'],name:'점포 단위 판별력 차트'},
+  site:{c:'chart-c',rows:['점포 규모·운영 특성'],name:'점포 단위 판별력 차트'},
+  hist:{c:'chart-s',rows:['지역 폐업 흐름'],name:'지역 간 순위 차트'},
+  gen:{c:'chart-w',rows:['BC카드 고객 성별'],name:'같은 시군구 안 순위 차트'},
+  biz:{c:'chart-w',rows:['업종'],name:'같은 시군구 안 순위 차트'},
+  etc:{c:'chart-c',rows:['입지','지역·업종 직전 폐업률'],name:'점포 단위 판별력 차트'}};
+function renderSurvLink(){
+  const el=$('#survlink');if(!el)return;el.hidden=false;
+  if(S.sel===null){el.innerHTML='<b>지도와 연결</b> 지도에서 지역을 고르면, 그 지역에서 가장 크게 작용한 요인의 근거를 여기서 바로 볼 수 있어요. <button type="button" class="chip-b" data-go-tab="map">지도로 가기</button>';return;}
+  const v=val(S.sel,S.biz);if(!v){el.hidden=true;return;}
+  const core=factors(v.x).filter(d=>d.key!=='age').sort((a,b)=>Math.abs(Math.log(b.m))-Math.abs(Math.log(a.m))),d=core[0],who='<b>'+rname(S.sel)+(S.biz>=0?' '+BIZ[S.biz]:' 전체')+'</b>('+MX(v.mult)+')';
+  if(d.m>=0.97&&d.m<=1.03){el.innerHTML='지금 보고 있는 '+who+'에서는 뚜렷하게 작용한 요인이 없어요(모두 ±3% 이내).';return;}
+  el.innerHTML='지금 보고 있는 '+who+'에서 가장 크게 작용한 요인은 <b>'+d.label+'</b>('+(d.m>=1?'위험을 높임 ▲':'위험을 낮춤 ▼')+' ×'+d.m.toFixed(2)+')이에요. <a href="#'+SURVMAP[d.key].c+'" data-see="'+d.key+'">이 요인의 근거: '+SURVMAP[d.key].name+' 보기 →</a>';
+}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-see]');if(!a)return;e.preventDefault();
+  const mp=SURVMAP[a.dataset.see],card=document.getElementById(mp.c);if(!card)return;
+  for(let d=card.closest('details');d;d=d.parentElement&&d.parentElement.closest('details'))d.open=true;   // 접힌 통계 상세를 연다
+  card.scrollIntoView({behavior:'smooth',block:'center'});
+  card.querySelectorAll('.hbrow').forEach(r=>{const nm=r.querySelector('.nm');if(nm&&mp.rows.includes(nm.textContent.replace(/^[★▼]\s*/,'').trim())){r.classList.add('hl');setTimeout(()=>r.classList.remove('hl'),2600);}});});
+
 // ---------- 탭 ----------
-function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===t));document.querySelectorAll('section.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));history.replaceState(null,'','#'+t);window.scrollTo(0,0);if(t==='map')setTimeout(()=>map.invalidateSize(),50);}
+function tab(t){document.querySelectorAll('#nav button').forEach(x=>x.setAttribute('aria-selected',x.dataset.t===t));document.querySelectorAll('section.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));history.replaceState(null,'','#'+t);window.scrollTo(0,0);if(t==='map')setTimeout(()=>map.invalidateSize(),50);if(t==='surv')renderSurvLink();}
 document.querySelectorAll('#nav button').forEach(x=>x.addEventListener('click',()=>tab(x.dataset.t)));
 if(location.hash&&$('#t-'+location.hash.slice(1)))tab(location.hash.slice(1));
 window.addEventListener('hashchange',()=>{const k=location.hash.slice(1);if($('#t-'+k)&&!$('#t-'+k).classList.contains('on'))tab(k);});   // 같은 문서에서 #surv 등으로 바꿔도 탭이 열린다

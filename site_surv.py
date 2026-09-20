@@ -323,9 +323,48 @@ def findings(h):
     return h
 
 
-TOC_ITEMS = [("implications", "시사점"), ("conclusions", "핵심 결론"), ("ch1", "1장 필요한 요인"), ("ch2", "2장 지역 vs 업종"), ("ch3", "3장 BC 소비"),
+TOC_ITEMS = [("overview", "요인 한눈에"), ("implications", "시사점"), ("conclusions", "핵심 결론"), ("ch1", "1장 필요한 요인"), ("ch2", "2장 지역 vs 업종"), ("ch3", "3장 BC 소비"),
              ("ch4", "4장 위험한 곳"), ("ch5", "5장 남은 패턴"), ("limits", "데이터·한계")]
 TOC = ('<nav class="toc" aria-label="이 탭의 섹션 바로가기">' + "".join(f'<a class="chip-b" href="#{i}" data-jump="{i}">{t}</a>' for i, t in TOC_ITEMS) + "</nav>")
+
+
+OV_TIPS = ("한 점포가 폐업할지 가려내는 정확도(C-index)가, 그 요인 묶음을 뺐을 때 얼마나 떨어지는지예요.",
+           "지역끼리의 폐업 위험 순위 예측이, 그 요인 묶음을 뺐을 때 얼마나 나빠지는지예요.",
+           "같은 시군구 안에서 지역·업종 조합의 순위 예측이, 그 요인 묶음을 뺐을 때 얼마나 나빠지는지예요. 음수면 빼는 편이 오히려 나아요.")
+
+
+def overview():
+    """세 관점(점포 단위 / 지역 간 / 같은 시군구 안) × 요인 묶음 요약표. 값·색 클래스는 위 차트에서 읽은 그대로다."""
+    ch = _CHARTS[:3]
+    assert len(ch) == 3 and all(c["kind"] for c in ch)
+    order = [r[0] for r in ch[0]["rows"]]
+    cols = [{r[0]: r for r in c["rows"]} for c in ch]
+    assert all(set(order) == set(c) for c in cols), "세 차트의 요인 묶음이 다름"
+    mx = [max(abs(_num(r[1])) for r in c["rows"]) for c in ch]
+    heads = ["점포 단위<br><small>폐업할 점포 가려내기</small>", "지역 간 순위<br><small>지역끼리 위험 순위</small>", "같은 시군구 안 순위<br><small>안에서 조합 순위</small>"]
+    th = "".join(f'<th class="hasq">{hd}{_qbtn(t)}</th>' for hd, t in zip(heads, OV_TIPS))
+    rows = []
+    for lab in order:
+        tds = []
+        for i, c in enumerate(cols):
+            _, val, cls = c[lab]
+            a = min(abs(_num(val)) / mx[i], 1.0)
+            color = {"pos": "var(--acc)", "neg": "#b45309", "muted": "var(--flat)"}[cls]
+            pctv = round((14 + 30 * a) if cls != "muted" else (6 + 18 * a))
+            mark = {"pos": "★ ", "neg": "▼ "}.get(cls, "")
+            tds.append(f'<td class="ovc {cls}" style="background:color-mix(in srgb,{color} {pctv}%,transparent)">{mark}{val}</td>')
+        rows.append(f'<tr><th scope="row">{lab}</th>{"".join(tds)}</tr>')
+    age_note = ""
+    a2, a3 = cols[1]["BC카드 고객 연령대"][2], cols[2]["BC카드 고객 연령대"][2]
+    if a2 == "pos" and a3 == "muted":
+        age_note = '<p class="how"><b>주의</b> BC카드 고객 연령대는 지역 간 순위에서는 유의하지만 같은 시군구 안에서는 아니에요. 원인이 아니라 “어떤 유형의 지역인가”를 알려 주는 신호로 읽어 주세요.</p>'
+    return ('<h2 id="overview">세 관점으로 본 요인 중요도 (한눈에)</h2>'
+            '<p class="plain">보는 관점에 따라 중요한 요인이 달라요. ★이 붙은 칸이 뚜렷하게 중요한 요인이에요.</p>'
+            + how("숫자는 그 요인 묶음을 뺐을 때 예측이 얼마나 나빠지는지예요. 색은 각 열 안에서 큰 값일수록 진해요(★ 유의 청록, 회색 불확실, ▼ 주황 빼는 편이 나음). 요인 순서는 왼쪽 열의 값이 큰 순서로 고정했어요. 막대와 신뢰구간은 아래 각 장의 ‘통계 상세’에 있어요.")
+            + f'<div class="scroll"><table class="ov"><thead><tr><th>요인 묶음</th>{th}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>' + age_note)
+
+
+BANNER = '<div id="survlink" class="survlink" hidden></div>'
 
 
 def step2(h):
@@ -363,6 +402,9 @@ def step2(h):
     for marker in ("점포 단위 판별력 하락", "지역 간 순위 하락", "같은 시군구 안 순위 하락", "점포당 소비(1월", "객단가(1월", "이웃끼리 닮은 패턴이 남은 정도"):
         h = _move_cap(h, marker)
     h = _move_cap(h, "폐업률 차이를 설명하는 정도", conclusion="시군구만으로 설명한 정도(0.44)가 업종만(0.12)보다 훨씬 커요.")
+    for marker, cid in (("점포 단위 판별력 하락", "chart-c"), ("지역 간 순위 하락", "chart-s"), ("같은 시군구 안 순위 하락", "chart-w")):
+        h, n = re.subn(rf'<div class="card"( style="[^"]*")?><h3 style="margin-top:0">{marker}', lambda m: f'<div class="card" id="{cid}"{m.group(1) or ""}><h3 style="margin-top:0">{marker}', h)
+        assert n == 1, f"차트 카드 앵커: {marker}"
     h = findings(h)
     secs = _split_sections(h)
     k_find = _find(secs, "한눈에"); k1, k2, k3 = _find(secs, "1장."), _find(secs, "2장."), _find(secs, "3장.")
@@ -384,7 +426,7 @@ def step2(h):
     s5 = (m5.group(1) + '<p class="plain">이웃 지역의 폐업 흐름을 모형에 넣으니, 모형이 놓치던 ‘이웃끼리 닮은 패턴’이 사라졌어요.</p>'
           f'<details class="stat"><summary>통계 상세 (심사·연구자용)</summary><div class="statbody">{m5.group(2)}</div></details>' + s5[m5.end():])
     lim = secs[kl] + CODE_TABLE
-    body = SUMMARY + TOC + implications(secs[k6]) + find + s1 + s2 + s3 + secs[k4] + s5 + lim
+    body = SUMMARY + TOC + BANNER + overview() + implications(secs[k6]) + find + s1 + s2 + s3 + secs[k4] + s5 + lim
     for hid, pre in (("conclusions", "<h2>핵심 결론"), ("ch1", "<h2>1장."), ("ch2", "<h2>2장."), ("ch3", "<h2>3장."), ("ch4", "<h2>4장."), ("ch5", "<h2>5장."), ("limits", "<h2>데이터와 한계")):
         body = _rep(body, pre, pre.replace("<h2>", f'<h2 id="{hid}">'))
     return body

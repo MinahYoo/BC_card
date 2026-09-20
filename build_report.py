@@ -27,7 +27,13 @@ full_m3l = drop.iloc[0]
 
 SHORT = {"영업연수": "영업연수", "프랜차이즈": "프랜차이즈", "입지(중심점 거리)": "입지", "사업장 확장(다중이용·크기·좌표결측·전화)": "사업장 확장",
          "그룹 직전 1년 폐업률": "그룹 직전 폐업률", "자기·이웃 시군구 폐업 이력": "자기·이웃 이력", "BC 성별 구성": "BC 성별", "BC 연령 구성": "BC 연령", "업종": "업종"}
-N_STORES, N_EVENTS = 635_567, 25_330
+N_STORES, N_EVENTS = 635_536, 25_329      # 모형 적합 표본(BC 변수 결측 31개 제외). prep_site_data.py가 만든 값이 있으면 그것을 쓴다
+try:
+    import json
+    _nat = json.loads(Path("output/site_data.json").read_text(encoding="utf-8"))["national"]
+    N_STORES, N_EVENTS = _nat["n"], _nat["events"]
+except FileNotFoundError:
+    pass
 
 
 def ci_of(s):

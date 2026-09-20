@@ -798,6 +798,8 @@ input[type=text]{min-width:min(260px,100%);flex:1}
 .guide li{counter-increment:g}.guide li::before{content:counter(g);display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--acc);color:var(--acc-fg);font-size:12px;font-weight:700;margin-right:6px}
 body.guide-on #map{height:clamp(400px,calc(100vh - 355px),760px)}
 @media (max-width:767px){body.guide-on #map{height:min(62vh,520px)}}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4)}@media (max-width:767px){.cmp{grid-template-columns:1fr}}
+.cmp h4{margin:0}.cmp .big b{font-size:32px}.cmpdiff{margin:12px 0 0;font-size:var(--fs-md)}
 .rklist{display:flex;flex-direction:column;gap:6px}
 .rk{display:grid;grid-template-columns:24px minmax(0,1fr) auto;column-gap:var(--s2);align-items:baseline;text-align:left;width:100%;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;padding:7px 10px;font-size:var(--fs-sm);cursor:pointer}
 .rk:hover{border-color:var(--acc);background:var(--acc-soft)}
@@ -852,6 +854,9 @@ body.guide-on #map{height:clamp(400px,calc(100vh - 355px),760px)}
 <div class="hero"><h1>상권 분석</h1><p>시군구를 고르면 업종별 점포 수·실제 폐업률·위험 배수·영업연수·프랜차이즈 비중·BC카드 월평균 소비를 한눈에 봅니다.</p></div>
 <div class="ctrl"><input type="text" id="areaq" list="rlist" placeholder="시군구 검색 (예: 화성시 동탄구, 강남구, 합천군)"><datalist id="rlist"></datalist></div>
 <div id="areaout" class="card"><p class="hint">시군구를 선택하세요.</p></div>
+<h3 style="margin-top:28px">두 지역 비교</h3>
+<div class="ctrl"><input type="text" id="cmpA" list="rlist" placeholder="지역 A (예: 서울특별시 마포구)" aria-label="비교할 지역 A"><span class="hint">vs</span><input type="text" id="cmpB" list="rlist" placeholder="지역 B (예: 서울특별시 강남구)" aria-label="비교할 지역 B"><select id="cmpBiz" aria-label="비교할 업종"></select></div>
+<div id="cmpOut" class="card"><p class="hint">두 지역을 고르면 폐업 위험도와 요인 막대를 나란히 보여 줘요.</p></div>
 <h3 style="margin-top:28px">시군구 위험·안전 Top 10 (전체 업종)</h3>
 <p class="hint" style="margin:0 0 8px">점포 2,000개 이상 시군구만 순위에 넣었어요. 행을 누르면 지도에서 열려요.</p>
 <div class="cols3"><div class="card" id="rg-hi"></div><div class="card" id="rg-lo"></div></div>
@@ -1098,8 +1103,8 @@ function renderLegend(){
 }
 
 // ---------- 패널 ----------
-function whyChart(x){
-  const f=factors(x).sort((a,b)=>Math.abs(Math.log(b.m))-Math.abs(Math.log(a.m))),mx=Math.log(1.6);   // 막대 길이는 로그 스케일, 가운데 = ×1.0(눈금 ×0.63~×1.6)
+function whyChart(x,order){   // order: 요인 key 배열(두 지역을 같은 순서로 나란히 볼 때). 없으면 영향이 큰 순서
+  const f=factors(x).sort(order?(a,b)=>order.indexOf(a.key)-order.indexOf(b.key):(a,b)=>Math.abs(Math.log(b.m))-Math.abs(Math.log(a.m))),mx=Math.log(1.6);   // 막대 길이는 로그 스케일, 가운데 = ×1.0(눈금 ×0.63~×1.6)
   const rows=f.map(d=>{const l=Math.log(d.m),flat=d.m>=0.97&&d.m<=1.03,up=l>=0,w=Math.min(Math.abs(l)/mx,1)*50;   // ±3% 이내는 회색
     const cls=flat?'flat':(up?'hi':'lo');
     return '<div class="fxrow'+(flat?' isflat':'')+'"><div class="nm hasq">'+d.label+qtip(d.tip)+'</div><div class="trk"><i class="fbar '+cls+(d.key==='age'?' soft':'')+'" style="'+(up?'left':'right')+':50%;width:'+w.toFixed(1)+'%"></i></div><div class="val '+(flat?'t-flat':(up?'t-hi':'t-lo'))+'">'+(flat?'':(up?'▲ ':'▼ '))+'×'+d.m.toFixed(2)+'</div></div>';}).join('');
@@ -1330,6 +1335,27 @@ RB.addEventListener('change',rank);rank();
   $('#rg-hi').innerHTML='<h4 style="margin:0 0 6px">▲ 위험 상위 10</h4>'+head+topRows(-1,'hi',10).map(row).join('')+'</tbody></table>';
   $('#rg-lo').innerHTML='<h4 style="margin:0 0 6px">▼ 안전 상위 10</h4>'+head+topRows(-1,'lo',10).map(row).join('')+'</tbody></table>';
   document.querySelectorAll('#rg-hi tr[data-r],#rg-lo tr[data-r]').forEach(tr=>tr.addEventListener('click',()=>{const i=+tr.dataset.r;setBizQuiet(-1);tab('map');setTimeout(()=>select(i,true),90);}));
+})();
+
+(function(){ // 두 지역 비교: 같은 업종 기준으로 요인 막대를 같은 순서로 나란히 놓는다
+  $('#cmpBiz').innerHTML='<option value="-1">전체 업종</option>'+BIZ.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join('');
+  const find=t=>{t=t.trim();if(!t)return -1;let i=D.regions.findIndex(r=>(r.sido+' '+r.name)===t);if(i>=0)return i;
+    const c=D.regions.map((r,k)=>k).filter(k=>t.length>=2&&(D.regions[k].sido+' '+D.regions[k].name).includes(t));return c.length===1?c[0]:-1;};
+  const card=(i,v,order)=>'<div><h4>'+rname(i)+'</h4><div class="big"><b class="'+(v.mult>=1?'t-hi':'t-lo')+'">×'+v.mult.toFixed(2)+'</b><span class="delta '+(v.mult>=1?'t-hi':'t-lo')+'">'+DELTA(v.mult)+'</span></div><div class="sub2" style="color:var(--sub)">실제 폐업률 '+pct(v.rate)+' · 점포 '+v.n.toLocaleString()+'개</div><div class="blk">'+whyChart(v.x,order)+'</div><button type="button" class="chip-b" data-go="'+i+'">지도에서 보기</button></div>';
+  function show(){
+    const a=find($('#cmpA').value),b=find($('#cmpB').value),bz=+$('#cmpBiz').value,out=$('#cmpOut');
+    if(a<0||b<0){out.innerHTML='<p class="hint">'+((!$('#cmpA').value.trim()&&!$('#cmpB').value.trim())?'두 지역을 고르면 폐업 위험도와 요인 막대를 나란히 보여 줘요.':'지역 이름을 목록에서 골라 주세요. 이름이 여러 곳과 겹치면 “서울특별시 마포구”처럼 시도까지 써 주세요.')+'</p>';return;}
+    const va=val(a,bz),vb=val(b,bz);
+    if(!va||!vb){out.innerHTML='<p class="hint">선택한 업종의 점포가 없는 지역이 있어 비교할 수 없어요. 업종을 바꿔 보세요.</p>';return;}
+    const fa=factors(va.x),fb=factors(vb.x),lg=m=>Math.log(m);
+    const order=fa.map(d=>d.key).sort((k1,k2)=>{const g=k=>Math.max(Math.abs(lg(fa.find(d=>d.key===k).m)),Math.abs(lg(fb.find(d=>d.key===k).m)));return g(k2)-g(k1);});
+    const dk=fa.filter(d=>d.key!=='age').map(d=>({d,e:fb.find(z=>z.key===d.key),gap:Math.abs(lg(d.m)-lg(fb.find(z=>z.key===d.key).m))})).sort((x,y)=>y.gap-x.gap)[0];
+    out.innerHTML='<div class="cmp">'+card(a,va,order)+card(b,vb,order)+'</div><p class="cmpdiff">두 지역의 가장 큰 차이는 <b>'+dk.d.label+'</b>이에요 ('+rname(a)+' ×'+dk.d.m.toFixed(2)+' · '+rname(b)+' ×'+dk.e.m.toFixed(2)+'). 요인 배수를 모두 곱하면 각 지역의 폐업 위험도가 돼요.</p>'+
+      '<p class="cap">같은 업종 기준('+(bz>=0?BIZ[bz]:'전체 업종')+')이며 통계적 연관이지 원인은 아니에요. 옅은 막대(BC카드 고객 연령대)는 참고용이라 차이 비교에서 뺐어요.</p>';
+    out.querySelectorAll('[data-go]').forEach(x=>x.addEventListener('click',()=>{const i=+x.dataset.go;setBizQuiet(bz);tab('map');setTimeout(()=>select(i,true),90);}));
+  }
+  ['cmpA','cmpB'].forEach(id=>{$('#'+id).addEventListener('change',show);$('#'+id).addEventListener('input',()=>{if(find($('#'+id).value)>=0)show();});});
+  $('#cmpBiz').addEventListener('change',show);
 })();
 
 // ---------- 탭 ----------

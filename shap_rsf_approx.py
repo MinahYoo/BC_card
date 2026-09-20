@@ -11,7 +11,8 @@ RSF는 선형이 아니라 정확한 SHAP 공식이 없다. 그래서 Štrumbelj
   · 배경 분포 = train 사업장 표본(interventional). Cox의 정확 SHAP(기준 = train 평균)과 같은 개념이라 블록별로 직접 비교할 수 있다.
   · 비용 때문에 사업장 전부가 아니라 선택한 그룹(Cox 기준 위험 상위·하위 + 무작위)에서 그룹당 일정 수만 설명한다.
 
-전제: shap_decomposition.py를 먼저 실행해 output/shap_cox_coef.csv, shap_cox_group_withinbiz.csv가 있어야 한다.
+Cox 정확 SHAP 분해 자체는 팀원의 explain_cox.py(CHANGELOG ⑰)가 이미 제공한다. 이 스크립트는 RSF와 비교하고 설명 대상 그룹을 고르는 데
+필요한 만큼만 Cox M3를 직접 적합한다(train, 수 초). 다른 스크립트의 산출물에 의존하지 않는다.
 주의: RSF는 rsf_eval.py 최종 모형(500트리·15만 행)을 저장해 두지 않아 더 작은 모형(기본 200트리·10만 행)을 같은 최적 하이퍼파라미터로 다시 학습한다.
       업종은 rsf_eval.py의 one-hot 범주 대신 이미 만들어 둔 더미 6개를 그대로 쓴다(같은 정보).
 실행: python3 -u shap_rsf_approx.py           (--quick 은 동작 확인용)
@@ -23,6 +24,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from lifelines import CoxPHFitter
 from lifelines.utils import concordance_index
 from sksurv.ensemble import RandomSurvivalForest
 from sksurv.util import Surv
@@ -61,6 +63,19 @@ is_train[tr_idx] = True
 med = d.loc[is_train, X_COLS].median()                      # 결측 대체는 train 중앙값만(누수 방지)
 X = d[X_COLS].fillna(med).astype(float)
 
+# ------------------------------------------------------------------ Cox M3 적합 (정확 SHAP 비교 + 설명 대상 그룹 선택)
+names = list(BLOCKS)
+col_idx = {b: [X_COLS.index(c) for c in cols] for b, cols in BLOCKS.items()}
+fit_df = X[is_train].assign(time=d.loc[is_train, "time"].to_numpy(), event=d.loc[is_train, "event"].astype(int).to_numpy())
+cph = CoxPHFitter().fit(fit_df, duration_col="time", event_col="event")
+coef = cph.params_.reindex(X_COLS).to_numpy()
+mu = X[is_train].mean().to_numpy()
+phi_cox_all = (X.to_numpy() - mu) * coef                 # Cox 정확 SHAP: β_j (x_j − train 평균)
+assert np.abs(phi_cox_all.sum(axis=1) - cph.predict_log_partial_hazard(X).to_numpy()).max() < 1e-6
+P = pd.DataFrame({b: phi_cox_all[:, col_idx[b]].sum(axis=1) for b in names})
+biz_mean = P[is_train].groupby(d.loc[is_train, "bc_업종"].to_numpy()).mean()
+Pw = P - biz_mean.reindex(d["bc_업종"]).to_numpy()       # 같은 업종 train 평균 기준(업종 효과 제거): 설명 대상 그룹의 위험 순위용
+
 # ------------------------------------------------------------------ RSF 학습 (rsf_eval.py의 최적 하이퍼파라미터)
 try:
     best = json.load(open(OUT + "rsf_eval_best_params.json"))
@@ -86,8 +101,11 @@ def f(M):
 
 
 # ------------------------------------------------------------------ 설명 대상 선택 (Cox 위험 순위 기반)
-cox_g = pd.read_csv(OUT + "shap_cox_group_withinbiz.csv")
-big = cox_g[cox_g["사업장수"] >= 50].sort_values("총_로그위험", ascending=False)
+gtab = d.groupby("group_id").agg(시도=("SIDO_NM", "first"), 시군구=("CCG_NM", "first"), bc_업종=("bc_업종", "first"),
+                                 사업장수=("event", "size"), 폐업수=("event", "sum"))
+gtab["관찰_폐업률_%"] = gtab["폐업수"] / gtab["사업장수"] * 100
+gtab["총_로그위험"] = Pw.sum(axis=1).groupby(d["group_id"]).mean()     # 같은 업종 평균 대비 그룹 평균 Cox 로그위험
+big = gtab[gtab["사업장수"] >= 50].sort_values("총_로그위험", ascending=False).reset_index()
 sel = pd.concat([big.head(args.n_top), big.tail(args.n_bottom),
                  big.iloc[args.n_top:-args.n_bottom].sample(args.n_random, random_state=args.seed)])
 sel_gids = sel["group_id"].tolist()
@@ -98,8 +116,6 @@ gid_e = d["group_id"].to_numpy()[rows]
 print(f"설명 대상: 그룹 {len(sel_gids)}개(위험 상위 {args.n_top} + 하위 {args.n_bottom} + 무작위 {args.n_random}), 사업장 {len(rows):,}개")
 
 # ------------------------------------------------------------------ 블록 permutation-sampling Shapley
-names = list(BLOCKS)
-col_idx = {b: [X_COLS.index(c) for c in cols] for b, cols in BLOCKS.items()}
 bg_pool = np.where(is_train)[0]
 N, B, M = len(rows), len(names), args.n_perm
 phi_all = np.zeros((M, N, B))                       # 반복별 값을 남겨 표준오차를 계산한다
@@ -125,10 +141,7 @@ add_err = np.abs(phi.sum(axis=1) - (fx - base_f.mean(axis=0))).max()
 print(f"[검증] 가법성 max|Σφ − (f(x) − mean_z f(z))| = {add_err:.2e}   블록 φ의 평균 표준오차 = {se.mean():.4f}")
 
 # ------------------------------------------------------------------ Cox 정확 SHAP과 비교 (같은 사업장·같은 기준)
-coef = pd.read_csv(OUT + "shap_cox_coef.csv", index_col=0)["coef"].reindex(X_COLS).to_numpy()
-mu = X[is_train].mean().to_numpy()
-phi_cox_full = (Xe - mu) * coef
-phi_cox = np.column_stack([phi_cox_full[:, col_idx[b]].sum(axis=1) for b in names])
+phi_cox = P.to_numpy()[rows]                       # 같은 사업장의 Cox 정확 SHAP(블록별)
 
 cmp_rows = []
 for j, b in enumerate(names):

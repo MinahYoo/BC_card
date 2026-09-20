@@ -155,14 +155,22 @@ def easy_names(h):
     return h
 
 
+def _first_in_text(h, ctx):
+    """태그 안(속성 값 포함)이 아닌 본문 텍스트에서 ctx의 첫 위치를 찾는다."""
+    i = h.find(ctx)
+    while i != -1:
+        if h.rfind("<", 0, i) <= h.rfind(">", 0, i):        # 마지막 '<' 뒤에 '>'가 이미 닫혔으면 태그 밖
+            return i
+        i = h.find(ctx, i + 1)
+    return -1
+
+
 def add_glossary(h):
     for ctx, term, text in GLOSS:
-        assert h.count(ctx) >= 1, f"용어 문맥 없음: {ctx}"
-        i = h.index(ctx)
-        j = i + ctx.index(term) + len(term)
-        # 문맥 안에서 용어 끝까지를 <span>으로 감싼다
+        i = _first_in_text(h, ctx)
+        assert i != -1, f"용어 문맥 없음: {ctx}"
         start = i + ctx.index(term)
-        h = h[:start] + tip(term, text) + h[j:]
+        h = h[:start] + tip(term, text) + h[start + len(term):]
     return h
 
 
@@ -379,9 +387,10 @@ def findings(h):
     def one(m):
         L, head, body = m.groups()
         big, must, label, unit, sample = KEYNUMS[L]
-        for term, text in ((g[1], g[2]) for g in GLOSS):        # 라벨에 나온 전문 용어는 그 자리에서 (?) 풀이
-            if term in label:
-                label = label.replace(term, tip(term, text), 1)
+        terms = {g[1]: g[2] for g in GLOSS if g[1] in label}      # 라벨에 나온 전문 용어는 그 자리에서 (?) 풀이
+        if terms:
+            pat_t = "|".join(re.escape(t) for t in sorted(terms, key=len, reverse=True))
+            label = re.sub(pat_t, lambda mm: tip(mm.group(0), terms[mm.group(0)]), label)      # 단일 패스: 삽입한 도움말 문구는 다시 검사하지 않는다
         plain = re.sub(r"<[^>]+>", "", body)
         for t in must:
             assert t in plain, f"결론 {L}: 원문에 {t} 없음"
